@@ -888,12 +888,24 @@ public class ActionBarPopupWindow extends PopupWindow {
         });
         content.updateAnimation = false;
         content.clipChildren = true;
+        // BrinaGram: the menu grows out of its anchor with a slight overshoot
+        final ObjectAnimator growX = ObjectAnimator.ofFloat(content, View.SCALE_X, 0.82f, 1f);
+        final ObjectAnimator growY = ObjectAnimator.ofFloat(content, View.SCALE_Y, 0.82f, 1f);
+        final ObjectAnimator fade = ObjectAnimator.ofFloat(content, View.ALPHA, 0f, 1f);
+        final android.view.animation.OvershootInterpolator overshoot = new android.view.animation.OvershootInterpolator(1.4f);
+        growX.setInterpolator(overshoot);
+        growY.setInterpolator(overshoot);
+        growX.setDuration(340);
+        growY.setDuration(340);
+        fade.setDuration(140);
         windowAnimatorSet.playTogether(
-                ObjectAnimator.ofFloat(content, "backScaleY", 0.0f, finalScaleY),
+                ObjectAnimator.ofFloat(content, "backScaleY", 0.6f, finalScaleY),
                 ObjectAnimator.ofInt(content, "backAlpha", 0, 255),
-                childtranslations
+                childtranslations,
+                growX, growY, fade
         );
         windowAnimatorSet.setDuration(150 + 16 * visibleCount);
+        childtranslations.setDuration(150 + 16 * visibleCount);
         windowAnimatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
@@ -1129,13 +1141,20 @@ public class ActionBarPopupWindow extends PopupWindow {
             setBackgroundColor(color);
         }
 
+        // BrinaGram: sections are split by a faint hairline, not a thick grey bar
+        private final android.graphics.Paint hairline = new android.graphics.Paint();
+
         @Override
-        protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            if (shadowDrawable != null) {
-                shadowDrawable.setBounds(0, 0, getWidth(), getHeight());
-                shadowDrawable.draw(canvas);
-            }
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(dp(9), MeasureSpec.EXACTLY));
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            final boolean dark = androidx.core.graphics.ColorUtils.calculateLuminance(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground)) < 0.5f;
+            hairline.setColor(dark ? 0x1FFFFFFF : 0x1F000000);
+            final float y = getHeight() / 2f;
+            canvas.drawRect(dp(18), y - AndroidUtilities.dpf2(0.33f), getWidth() - dp(18), y + AndroidUtilities.dpf2(0.33f), hairline);
         }
     }
 }

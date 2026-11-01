@@ -81,7 +81,7 @@ public class ActionBarMenuSubItem extends FrameLayout {
         selectorColor = getThemedColor(Theme.key_dialogButtonSelector);
 
         updateBackground();
-        setPadding(dp(18), 0, dp(18), 0);
+        setPadding(dp(20), 0, dp(20), 0);
 
         imageView = new RLottieImageView(context);
         imageView.setScaleType(ImageView.ScaleType.CENTER);

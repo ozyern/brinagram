@@ -385,6 +385,11 @@ public class MainTabsLayout extends AnimatedLinearLayout {
                 capsuleXSpring.cancel();
                 capsuleX = cx;
                 springTarget = cx;
+            } else if (gestureActive) {
+                // a page swipe is driving the capsule; it settles when the swipe ends
+            } else if (Math.abs(capsuleX - cx) < tabPitch() * 0.5f) {
+                // a page swipe already carried the capsule here: just settle
+                moveCapsule(cx);
             } else if (Math.abs(getSpringTarget() - cx) > 0.5f) {
                 // a change that did not come from this bar (page swipe, back stack):
                 // the same press, slide and settle a tap gets
@@ -399,10 +404,24 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     private float springTarget = Float.NaN;
 
     /** Page swipe in progress: the capsule follows between {@code from} and {@code to}. */
+    private boolean gestureActive;
+
     public void setGestureCapsule(@Nullable View from, @Nullable View to, float fraction, boolean active) {
-        if (!active || pressed || from == null || from.getVisibility() != View.VISIBLE) {
+        if (!active) {
+            if (gestureActive) {
+                gestureActive = false;
+                // the swipe ended: settle on whichever tab is selected now
+                final View selected = findSelectedTab();
+                if (selected != null && !pressed) {
+                    moveCapsule(centerX(selected));
+                }
+            }
             return;
         }
+        if (pressed || from == null || from.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        gestureActive = true;
         final float target = to == null || to.getVisibility() != View.VISIBLE ? centerX(from) : lerp(centerX(from), centerX(to), fraction);
         capsuleXSpring.cancel();
         capsuleX = springTarget = target;
@@ -589,7 +608,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             capsuleX = centerX(selected);
         }
         // follow layout changes (tabs appearing/disappearing) while idle
-        if (!pressed && selected != null && !capsuleXSpring.isRunning() && pressProgress <= 0.001f) {
+        if (!pressed && !gestureActive && selected != null && !capsuleXSpring.isRunning() && pressProgress <= 0.001f) {
             capsuleX = springTarget = centerX(selected);
         }
         if (Float.isNaN(capsuleX)) {
@@ -603,8 +622,8 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         final float press = Math.max(0f, Math.min(1f, pressProgress));
         final boolean dark = GlassTabView.isGlassDark(resourcesProvider);
         final float tabHeight = getHeight() - getPaddingTop() - getPaddingBottom();
-        // never narrower than it is tall
-        final float baseWidth = Math.max(getInterpolatedWidthByX(capsuleX, this), tabHeight);
+        // the tab's own width, so the resting capsule never spills onto its neighbours
+        final float baseWidth = getInterpolatedWidthByX(capsuleX, this);
         // longer and flatter the faster it travels, round again as it slows
         final float v = velocity / 10f;
         final float sx = capsuleScaleX / (1f - clamp(v * 0.75f, -0.2f, 0.2f));
@@ -626,17 +645,22 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             canvas.drawRoundRect(m, m, getWidth() - m, getHeight() - m, dockR, dockR, glowPaint);
         }
 
-        // 1. the bar's tabs, in their own ink
+        // 1. the bar's tabs, in their own ink — but not under the capsule: there only the
+        //    accent copy is drawn, otherwise the magnified copy and the original both show
+        canvas.save();
+        org.telegram.ui.Components.glass.LiquidGlassStyle.clipOut(canvas, capsulePath);
         super.dispatchDraw(canvas);
+        canvas.restore();
 
         // 2. capsule shadow (0.35 at rest, 1 held) and wash (0.8, clearing to 0.2 when held)
         shadowPaint.setColor(0);
         shadowPaint.setShadowLayer(dp(8), 0, dp(2), Theme.multAlpha(0x40000000, lerp(0.35f, 1f, press)));
         canvas.save();
-        canvas.clipOutPath(capsulePath);
+        org.telegram.ui.Components.glass.LiquidGlassStyle.clipOut(canvas, capsulePath);
         canvas.drawRoundRect(capsuleRect, r, r, shadowPaint);
         canvas.restore();
-        washPaint.setColor(Theme.multAlpha(dark ? 0xFF1C1B1C : 0xFFF2F2F2, 0.8f * (1f - 0.75f * press)));
+        // near-opaque at rest so the plain label under the capsule doesn't ghost through the accent copy
+        washPaint.setColor(Theme.multAlpha(dark ? 0xFF1C1B1C : 0xFFF2F2F2, 0.94f * (1f - 0.75f * press)));
         canvas.drawRoundRect(capsuleRect, r, r, washPaint);
 
         // 3. through the glass: every tab in the accent ink, magnified as the capsule is held

@@ -150,7 +150,7 @@ public final class BrinaSplash {
                 revealPath.rewind();
                 revealPath.addCircle(cx, cy, radius * 0.6f + (max - radius * 0.6f) * reveal, Path.Direction.CW);
                 canvas.save();
-                canvas.clipOutPath(revealPath);
+                LiquidGlassStyle.clipOut(canvas, revealPath);
                 canvas.drawRect(0, 0, w, h, background);
                 canvas.restore();
             } else {

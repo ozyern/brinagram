@@ -12,6 +12,16 @@ public final class LiquidGlassStyle {
 
     private LiquidGlassStyle() {}
 
+    /** Canvas.clipOutPath on Android 8+, the equivalent region op before it. */
+    @SuppressWarnings("deprecation")
+    public static void clipOut(android.graphics.Canvas canvas, android.graphics.Path path) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            canvas.clipOutPath(path);
+        } else {
+            canvas.clipPath(path, android.graphics.Region.Op.DIFFERENCE);
+        }
+    }
+
     /** Corner radius of context menus, popups and alert dialogs. */
     public static final int MENU_RADIUS_DP = 20;
     /** Context / popup menus show text only (the pressed row is an inset pill). */
