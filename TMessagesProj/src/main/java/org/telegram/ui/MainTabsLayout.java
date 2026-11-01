@@ -314,10 +314,12 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             final float sWidth = getInterpolatedWidthByX(x, this);
             final float sHeight = getHeight() - getPaddingTop() - getPaddingBottom();
 
-            canvas.drawRoundRect(
-                    x - sWidth / 2f, (getHeight() - sHeight) / 2f,
-                    x + sWidth / 2f, (getHeight() + sHeight) / 2f,
-                    sHeight / 2f, sHeight / 2f, selectorPaint);
+            // While dragging, the lens grows slightly like iOS 26's liquid tab selector.
+            final float grow = isInLongPress ? dp(3) : 0;
+            selectorRect.set(
+                    x - sWidth / 2f - grow, (getHeight() - sHeight) / 2f - grow,
+                    x + sWidth / 2f + grow, (getHeight() + sHeight) / 2f + grow);
+            GlassTabView.drawGlassBubble(canvas, selectorRect, 1f, resourcesProvider);
         }
 
         super.dispatchDraw(canvas);
@@ -325,6 +327,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
 
     final Paint selectorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.RectF selectorRect = new android.graphics.RectF();
     final SpringAnimation scaleX = new SpringAnimation(this, DynamicAnimation.SCALE_X, 1f);
     final SpringAnimation scaleY = new SpringAnimation(this, DynamicAnimation.SCALE_Y, 1f);
 

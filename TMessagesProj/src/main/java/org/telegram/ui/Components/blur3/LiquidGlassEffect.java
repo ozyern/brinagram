@@ -21,6 +21,36 @@ public class LiquidGlassEffect {
         this.node = node;
         final String code = AndroidUtilities.readRes(R.raw.liquid_glass_shader);
         shader = new RuntimeShader(code);
+        applyStyleUniforms();
+        node.setRenderEffect(effect = RenderEffect.createRuntimeShaderEffect(shader, "img"));
+    }
+
+    /** Chromatic aberration at the lens edge, 0..1. */
+    public static final float DEFAULT_DISPERSION = 0.5f;
+    /** Specular rim highlight strength, 0..1. */
+    public static final float DEFAULT_HIGHLIGHT = 0.55f;
+    /** Vibrancy (saturation boost) of the refracted backdrop, same as Kyant's vibrancy(). */
+    public static final float DEFAULT_SATURATION = 1.5f;
+
+    private float dispersion = DEFAULT_DISPERSION;
+    private float highlight = DEFAULT_HIGHLIGHT;
+    private float saturation = DEFAULT_SATURATION;
+
+    private void applyStyleUniforms() {
+        shader.setFloatUniform("dispersion", dispersion);
+        shader.setFloatUniform("highlight", highlight);
+        shader.setFloatUniform("saturation", saturation);
+        shader.setFloatUniform("rim_width", AndroidUtilities.dpf2(1.2f));
+    }
+
+    public void setStyle(float dispersion, float highlight, float saturation) {
+        if (this.dispersion == dispersion && this.highlight == highlight && this.saturation == saturation) {
+            return;
+        }
+        this.dispersion = dispersion;
+        this.highlight = highlight;
+        this.saturation = saturation;
+        applyStyleUniforms();
         node.setRenderEffect(effect = RenderEffect.createRuntimeShaderEffect(shader, "img"));
     }
 

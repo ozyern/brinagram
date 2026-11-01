@@ -546,7 +546,7 @@ public class ActionBarPopupWindow extends PopupWindow {
                         } else {
                             path.rewind();
                         }
-                        path.addRoundRect(AndroidUtilities.rectTmp, dp(12), dp(12), Path.Direction.CW);
+                        path.addRoundRect(AndroidUtilities.rectTmp, dp(org.telegram.ui.Components.glass.LiquidGlassStyle.MENU_RADIUS_DP), dp(org.telegram.ui.Components.glass.LiquidGlassStyle.MENU_RADIUS_DP), Path.Direction.CW);
                         canvas.clipPath(path);
                         for (int i = 0; i < linearLayout.getChildCount(); i++) {
                             if (linearLayout.getChildAt(i) instanceof GapView && linearLayout.getChildAt(i).getVisibility() == View.VISIBLE) {

@@ -369,6 +369,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
         listView.setSections();
         actionBar.setAdaptiveBackground(listView);
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
         listView.setAdapter(adapter = new ListAdapter(context));
         listView.setItemAnimator(null);
         listView.setLayoutAnimation(null);

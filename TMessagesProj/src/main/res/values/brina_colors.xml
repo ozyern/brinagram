@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- BrinaGram brand colors -->
+    <color name="brina_splash_background">#FF100B08</color>
+    <color name="brina_gold">#FFD4AE7C</color>
+</resources>

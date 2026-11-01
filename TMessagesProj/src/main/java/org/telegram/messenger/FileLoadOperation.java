@@ -297,8 +297,15 @@ public class FileLoadOperation {
         boolean isLocallyCreatedFile(String path);
     }
 
+    /** BrinaGram: files at least this big use 128KB parts instead of 32KB ones. */
+    private static final int MEDIUM_FILE_SIZE_FROM = 1024 * 1024;
+
     private void updateParams() {
-        if ((preloadPrefixSize > 0 || MessagesController.getInstance(currentAccount).getfileExperimentalParams) && !forceSmallChunk) {
+        // BrinaGram: always use Telegram's large-part request shape (normally server-flagged via
+        // getfileExperimentalParams). Fewer, larger requests mean far fewer round trips on
+        // high-latency links. The in-flight byte budget and the server's per-account speed
+        // limits are unchanged.
+        if (!forceSmallChunk) {
             downloadChunkSizeBig = 1024 * 512;
             maxDownloadRequests = 8;
             maxDownloadRequestsBig = 8;
@@ -874,7 +881,9 @@ public class FileLoadOperation {
                 currentMaxDownloadRequests = maxDownloadRequestsAnimation;
             } else {
                 boolean bigChunk = totalBytesCount >= bigFileSizeFrom;
-                currentDownloadChunkSize = bigChunk ? downloadChunkSizeBig : downloadChunkSize;
+                // 128KB parts divide 1MB evenly, as upload.getFile requires.
+                final int mediumChunk = totalBytesCount >= MEDIUM_FILE_SIZE_FROM ? 1024 * 128 : downloadChunkSize;
+                currentDownloadChunkSize = bigChunk ? downloadChunkSizeBig : mediumChunk;
                 currentMaxDownloadRequests = bigChunk ? maxDownloadRequestsBig : maxDownloadRequests;
                 updateDownloadByteBudget();
             }

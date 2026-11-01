@@ -81,7 +81,8 @@ public class LiteMode {
         FLAG_CALLS_ANIMATIONS |
         FLAG_AUTOPLAY_VIDEOS |
         FLAG_AUTOPLAY_GIFS |
-        FLAG_PARTICLES
+        FLAG_PARTICLES |
+        FLAG_LIQUID_GLASS // BrinaGram: liquid glass on by default
     ); // 262143
     public static int PRESET_POWER_SAVER = 0;
 
@@ -181,7 +182,7 @@ public class LiteMode {
                 try {
                     PRESET_LOW = (int) ((TLRPC.TL_jsonNumber) array.get(0)).value;
                     PRESET_MEDIUM = (int) ((TLRPC.TL_jsonNumber) array.get(1)).value;
-                    PRESET_HIGH = (int) ((TLRPC.TL_jsonNumber) array.get(2)).value;
+                    PRESET_HIGH = (int) ((TLRPC.TL_jsonNumber) array.get(2)).value | FLAG_LIQUID_GLASS; // BrinaGram: liquid glass on by default
                 } catch (Exception e) {
                     FileLog.e(e);
                 }

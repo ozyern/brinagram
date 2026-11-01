@@ -142,6 +142,21 @@ android {
 
         multiDexEnabled true
 
+        // BrinaGram: own Telegram API credentials, injected by CI (TELEGRAM_APP_ID / TELEGRAM_APP_HASH).
+        def telegramAppId = System.getenv("TELEGRAM_APP_ID") ?: "0"
+        if (!(telegramAppId ==~ /\d+/)) {
+            throw new GradleException("TELEGRAM_APP_ID must be numeric")
+        }
+        buildConfigField "int", "BRINA_APP_ID", telegramAppId
+        buildConfigField "String", "BRINA_APP_HASH", "\"" + (System.getenv("TELEGRAM_APP_HASH") ?: "") + "\""
+
+        // BrinaGram: -PbrinaAbis=arm64-v8a,armeabi-v7a limits the native build (faster CI).
+        if (project.hasProperty('brinaAbis')) {
+            ndk {
+                abiFilters(*project.property('brinaAbis').toString().split(','))
+            }
+        }
+
         externalNativeBuild {
             cmake {
                 version '3.22.1'

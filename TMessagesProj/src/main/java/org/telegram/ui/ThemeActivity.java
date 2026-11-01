@@ -1010,7 +1010,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         if (setFontSize(AndroidUtilities.isTablet() ? 18 : 16)) {
                             changed = true;
                         }
-                        if (setBubbleRadius(17, true)) {
+                        if (setBubbleRadius(18, true)) {
                             changed = true;
                         }
                         if (changed) {
@@ -1098,6 +1098,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         listView.setSections();
         listView.setLayoutManager(layoutManager = new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
         listView.setVerticalScrollBarEnabled(false);
+        listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
         listView.setAdapter(listAdapter);
         ((DefaultItemAnimator) listView.getItemAnimator()).setDelayAnimations(false);
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
@@ -1675,7 +1676,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         }
         int fontSize = AndroidUtilities.isTablet() ? 18 : 16;
         Theme.ThemeInfo currentTheme = Theme.getCurrentTheme();
-        if (SharedConfig.fontSize != fontSize || SharedConfig.bubbleRadius != 17 || !currentTheme.firstAccentIsDefault || currentTheme.currentAccentId != Theme.DEFALT_THEME_ACCENT_ID || accent != null && accent.overrideWallpaper != null && !Theme.DEFAULT_BACKGROUND_SLUG.equals(accent.overrideWallpaper.slug)) {
+        if (SharedConfig.fontSize != fontSize || SharedConfig.bubbleRadius != 18 || !currentTheme.firstAccentIsDefault || currentTheme.currentAccentId != Theme.DEFALT_THEME_ACCENT_ID || accent != null && accent.overrideWallpaper != null && !Theme.DEFAULT_BACKGROUND_SLUG.equals(accent.overrideWallpaper.slug)) {
             menuItem.showSubItem(reset_settings);
         } else {
             menuItem.hideSubItem(reset_settings);

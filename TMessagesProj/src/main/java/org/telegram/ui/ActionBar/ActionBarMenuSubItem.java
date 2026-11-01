@@ -44,7 +44,7 @@ public class ActionBarMenuSubItem extends FrameLayout {
     private PorterDuff.Mode iconColorMode;
     private int selectorColor;
 
-    int selectorRad = 12;
+    int selectorRad = org.telegram.ui.Components.glass.LiquidGlassStyle.MENU_RADIUS_DP;
     boolean top;
     boolean bottom;
 

@@ -246,6 +246,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
         listView.setEmptyView(emptyView);
         listView.setAnimateEmptyView(true, RecyclerListView.EMPTY_VIEW_ANIMATION_TYPE_ALPHA);
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
         listView.setAdapter(listAdapter);
         DefaultItemAnimator itemAnimator = new DefaultItemAnimator();
         itemAnimator.setDurations(150);

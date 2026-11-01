@@ -1167,7 +1167,7 @@ public class ContentPreviewViewer {
             for (int i = 0; i < previewMenu.getItemsCount(); ++i) {
                 View child = previewMenu.getItemAt(i);
                 if (child instanceof ActionBarMenuSubItem) {
-                    ((ActionBarMenuSubItem) child).updateSelectorBackground(i == 0, i == previewMenu.getItemsCount() - 1, 12);
+                    ((ActionBarMenuSubItem) child).updateSelectorBackground(i == 0, i == previewMenu.getItemsCount() - 1, org.telegram.ui.Components.glass.LiquidGlassStyle.MENU_RADIUS_DP);
                 }
             }
         }

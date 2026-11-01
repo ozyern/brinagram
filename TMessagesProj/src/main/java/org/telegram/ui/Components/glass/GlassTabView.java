@@ -140,6 +140,54 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         invalidate();
     }
 
+    /** Draws the selected tab as a frosted glass capsule (iOS 26 / Exhale style dock). */
+    private boolean iosSelector;
+
+    private static final Paint bubbleFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint bubbleRimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    static {
+        bubbleRimPaint.setStyle(Paint.Style.STROKE);
+    }
+
+    public static boolean isGlassDark(Theme.ResourcesProvider resourcesProvider) {
+        return ColorUtils.calculateLuminance(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider)) < 0.5f;
+    }
+
+    /**
+     * Frosted lens capsule: a translucent fill plus a gradient specular rim that is bright at the
+     * top-left and fades towards the bottom-right, imitating light hitting a glass edge.
+     */
+    public static void drawGlassBubble(Canvas canvas, RectF rect, float alpha, Theme.ResourcesProvider resourcesProvider) {
+        if (alpha <= 0f || rect.isEmpty()) {
+            return;
+        }
+        final boolean dark = isGlassDark(resourcesProvider);
+        final float r = Math.min(rect.width(), rect.height()) / 2f;
+
+        bubbleFillPaint.setShader(new android.graphics.LinearGradient(
+            rect.left, rect.top, rect.left, rect.bottom,
+            Theme.multAlpha(dark ? 0xFFFFFFFF : 0xFF000000, (dark ? 0.16f : 0.07f) * alpha),
+            Theme.multAlpha(dark ? 0xFFFFFFFF : 0xFF000000, (dark ? 0.09f : 0.04f) * alpha),
+            android.graphics.Shader.TileMode.CLAMP));
+        canvas.drawRoundRect(rect, r, r, bubbleFillPaint);
+
+        final float stroke = dpf2(1f);
+        bubbleRimPaint.setStrokeWidth(stroke);
+        bubbleRimPaint.setShader(new android.graphics.LinearGradient(
+            rect.left, rect.top, rect.right, rect.bottom,
+            new int[] {
+                Theme.multAlpha(0xFFFFFFFF, (dark ? 0.45f : 0.9f) * alpha),
+                Theme.multAlpha(0xFFFFFFFF, (dark ? 0.04f : 0.15f) * alpha),
+                Theme.multAlpha(0xFFFFFFFF, (dark ? 0.18f : 0.5f) * alpha)
+            },
+            new float[] {0f, 0.55f, 1f},
+            android.graphics.Shader.TileMode.CLAMP));
+        final float inset = stroke / 2f;
+        rect.inset(inset, inset);
+        canvas.drawRoundRect(rect, r - inset, r - inset, bubbleRimPaint);
+        rect.inset(-inset, -inset);
+    }
+
     public void setSkipDrawSelector(boolean skipDrawSelector) {
         if (this.skipDrawSelector != skipDrawSelector) {
             this.skipDrawSelector = skipDrawSelector;
@@ -154,13 +202,17 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         if (selectedFactor > 0 && !skipDrawSelector) {
             final float alpha = AnimatorUtils.DECELERATE_INTERPOLATOR.getInterpolation(selectedFactor);
 
-            paintCounterBackground.setColor(Theme.multAlpha(colorSelected, 0.09f * alpha));
             tmpRectF.set(0, 0, viewWidth, getHeight());
             final float r = Math.min(tmpRectF.width(), tmpRectF.height()) / 2f;
             final float s = lerp(0.6f, 1, selectedFactor) * MathUtils.clamp(attachScale, 0, 1);
             canvas.save();
             canvas.scale(s, s, tmpRectF.centerX(), tmpRectF.centerY());
-            canvas.drawRoundRect(tmpRectF, r, r, paintCounterBackground);
+            if (iosSelector) {
+                drawGlassBubble(canvas, tmpRectF, alpha, resourcesProvider);
+            } else {
+                paintCounterBackground.setColor(Theme.multAlpha(colorSelected, 0.09f * alpha));
+                canvas.drawRoundRect(tmpRectF, r, r, paintCounterBackground);
+            }
             canvas.restore();
         }
 
@@ -323,7 +375,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
             boolean update = lastIsSelected != isSelected;
             if (lastIconAnimationRaw != animationToSet) {
                 lastIconAnimationRaw = animationToSet;
-                imageView.setAnimation(animationToSet, 24, 24);
+                imageView.setAnimation(animationToSet, iosSelector ? DOCK_ICON_SIZE : 24, iosSelector ? DOCK_ICON_SIZE : 24);
                 update = true;
             }
 
@@ -361,7 +413,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
             if (lastIconAnimationRaw != animationToSet) {
                 lastIconAnimationRaw = animationToSet;
 
-                imageView.setAnimation(animationToSet, 24, 24);
+                imageView.setAnimation(animationToSet, iosSelector ? DOCK_ICON_SIZE : 24, iosSelector ? DOCK_ICON_SIZE : 24);
                 imageView.getAnimatedDrawable().setPlayInDirectionOfCustomEndFrame(false);
                 if (animated) {
                     imageView.getAnimatedDrawable().setCurrentFrame(0);
@@ -401,9 +453,10 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         GlassTabView tab = new GlassTabView(context);
         tab.resourcesProvider = resourcesProvider;
         tab.tabAnimation = tabAnimation;
+        tab.iosSelector = true;
         tab.textView.setText(LocaleController.getString(stringRes));
         tab.checkPlayAnimation(false);
-        tab.imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
+        tab.applyDockLayout();
         tab.colorDefault = Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider);
         tab.colorSelected = Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider);
         tab.colorSelectedText = Theme.getColor(Theme.key_glass_tabSelectedText, resourcesProvider);
@@ -411,8 +464,19 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         return tab;
     }
 
+    /** Dock icon size (dp) for main tabs: larger, iOS-like glyphs with the label underneath. */
+    public static final int DOCK_ICON_SIZE = 27;
+
+    private void applyDockLayout() {
+        imageView.setLayoutParams(LayoutHelper.createFrame(DOCK_ICON_SIZE, DOCK_ICON_SIZE, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 6, 0, 0));
+        textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 34f, 0, 0));
+    }
+
     public static GlassTabView createAvatar(Context context, Theme.ResourcesProvider resourcesProvider, int currentAccount, @StringRes int stringRes) {
         GlassTabView tab = new GlassTabView(context);
+        tab.iosSelector = true;
+        tab.resourcesProvider = resourcesProvider;
+        tab.textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 34f, 0, 0));
         tab.textView.setText(LocaleController.getString(stringRes));
         tab.imageView.setVisibility(GONE);
 
@@ -421,10 +485,10 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
         BackupImageView backupImageView = new BackupImageView(context);
         backupImageView.setForUserOrChat(user, avatarDrawable);
-        backupImageView.setRoundRadius(dp(11));
+        backupImageView.setRoundRadius(dp(13));
         tab.backupImageView = backupImageView;
 
-        tab.addView(backupImageView, LayoutHelper.createFrame(22, 22, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 5, 0, 0));
+        tab.addView(backupImageView, LayoutHelper.createFrame(26, 26, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 6, 0, 0));
         tab.colorDefault = Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider);
         tab.colorSelected = Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider);
         tab.colorSelectedText = Theme.getColor(Theme.key_glass_tabSelectedText, resourcesProvider);

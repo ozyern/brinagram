@@ -1215,14 +1215,14 @@ public class ItemOptions {
                 final View first = popupLayout.getItemAt(0);
                 final View last = popupLayout.getItemAt(popupLayout.getItemsCount() - 1);
                 if (first instanceof ActionBarMenuSubItem) {
-                    ((ActionBarMenuSubItem) first).updateSelectorBackground(true, first == last, 12);
+                    ((ActionBarMenuSubItem) first).updateSelectorBackground(true, first == last, org.telegram.ui.Components.glass.LiquidGlassStyle.MENU_RADIUS_DP);
                 } else if (first instanceof MessagePreviewView.ToggleButton || first instanceof FrameLayout) {
                     first.setBackground(Theme.createRadSelectorDrawable(Theme.getColor(Theme.key_dialogButtonSelector, resourcesProvider), 12, first == last ? 12 : 0));
                 } else if (first != null && first.getBackground() instanceof RippleDrawable) {
                     first.setBackground(Theme.createRadSelectorDrawable(Theme.getColor(Theme.key_dialogButtonSelector, resourcesProvider), 12, first == last ? 12 : 0));
                 }
                 if (last instanceof ActionBarMenuSubItem) {
-                    ((ActionBarMenuSubItem) last).updateSelectorBackground(last == first, true, 12);
+                    ((ActionBarMenuSubItem) last).updateSelectorBackground(last == first, true, org.telegram.ui.Components.glass.LiquidGlassStyle.MENU_RADIUS_DP);
                 } else if (last instanceof MessagePreviewView.ToggleButton || last instanceof FrameLayout) {
                     last.setBackground(Theme.createRadSelectorDrawable(Theme.getColor(Theme.key_dialogButtonSelector, resourcesProvider), first == last ? 12 : 0, 12));
                 } else if (last != null && last.getBackground() instanceof RippleDrawable) {

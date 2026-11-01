@@ -2669,8 +2669,52 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
 
     private boolean ignoreClipChild;
 
+    private org.telegram.ui.Components.glass.InsetGroupedDecoration insetGrouped;
+
+    /** Enables the iOS inset grouped card style for this list (settings-style screens). */
+    public void setInsetGrouped(boolean enabled) {
+        if (enabled == (insetGrouped != null)) {
+            return;
+        }
+        if (enabled) {
+            insetGrouped = new org.telegram.ui.Components.glass.InsetGroupedDecoration(resourcesProvider);
+            addItemDecoration(insetGrouped);
+            addOnChildAttachStateChangeListener(insetGroupedAttachListener);
+            for (int i = 0; i < getChildCount(); i++) {
+                insetGrouped.onChildAttached(getChildAt(i));
+            }
+        } else {
+            removeItemDecoration(insetGrouped);
+            removeOnChildAttachStateChangeListener(insetGroupedAttachListener);
+            insetGrouped = null;
+        }
+        invalidate();
+    }
+
+    public boolean isInsetGrouped() {
+        return insetGrouped != null;
+    }
+
+    private final OnChildAttachStateChangeListener insetGroupedAttachListener = new OnChildAttachStateChangeListener() {
+        @Override
+        public void onChildViewAttachedToWindow(@NonNull View view) {
+            if (insetGrouped != null) {
+                insetGrouped.onChildAttached(view);
+            }
+        }
+
+        @Override
+        public void onChildViewDetachedFromWindow(@NonNull View view) {
+        }
+    };
+
     @Override
     public boolean drawChild(Canvas canvas, View child, long drawingTime) {
+        if (insetGrouped != null && !ignoreClipChild && insetGrouped.clipChild(canvas, this, child)) {
+            final boolean r = super.drawChild(canvas, child, drawingTime);
+            canvas.restore();
+            return r;
+        }
         if (hasSections() && !ignoreClipChild) {
             canvas.save();
             clipChild(canvas, child);

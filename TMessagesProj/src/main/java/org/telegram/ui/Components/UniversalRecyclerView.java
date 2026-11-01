@@ -61,6 +61,8 @@ public class UniversalRecyclerView extends RecyclerListView {
             onLongClick,
             fragment.getResourceProvider()
         );
+        // BrinaGram: full-screen settings-style lists use the iOS inset grouped style.
+        setInsetGrouped(true);
     }
 
     public UniversalRecyclerView(

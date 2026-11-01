@@ -130,10 +130,10 @@ public class ThemeColors {
         defaultColors[key_settings_listSelector] = 0x1d000010;
         defaultColors[key_radioBackground] = 0xffb3b3b3;
         defaultColors[key_radioBackgroundChecked] = TELEGRAM_COLOR;
-        defaultColors[key_windowBackgroundGray] = 0xffF1F1F3;
+        defaultColors[key_windowBackgroundGray] = 0xffF2F2F7; // iOS systemGroupedBackground
         defaultColors[key_windowBackgroundGrayShadow] = 0xff000000;
         defaultColors[key_emptyListPlaceholder] = 0xff73787b;
-        defaultColors[key_divider] = 0xffd9d9d9;
+        defaultColors[key_divider] = 0xffC6C6C8; // iOS opaqueSeparator
         defaultColors[key_graySection] = 0xfff5f5f5;
         defaultColors[key_graySectionText] = 0xff82878A;
         defaultColors[key_contextProgressInner1] = 0xffbfdff6;
@@ -873,8 +873,8 @@ public class ThemeColors {
         defaultColors[key_glass_defaultText] = 0x991B2227; //0xFF737876;
         defaultColors[key_glass_targetMainTabs] = 0xFFFFFFFF;
         defaultColors[key_glass_targetMainTopPanel] = 0xFFFFFFFF;
-        defaultColors[key_glass_tabSelected] = 0xFF1a91e6;
-        defaultColors[key_glass_tabSelectedText] = 0xFF0d7fcf;
+        defaultColors[key_glass_tabSelected] = 0xFFFA2D48; // iOS system red (Apple Music)
+        defaultColors[key_glass_tabSelectedText] = 0xFFFA2D48;
         defaultColors[key_glass_tabUnselected] = 0xFF1A1D21;
 
         defaultColors[key_botKeyboard_button_danger] = 0xFFdb4646;

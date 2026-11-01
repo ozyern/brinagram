@@ -222,6 +222,24 @@ public class Switch extends View {
         return super.verifyDrawable(who) || rippleDrawable != null && who == rippleDrawable;
     }
 
+    private static final float IOS_TRACK_RATIO = 51f / 31f;
+    private final android.graphics.Paint thumbShadowPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+    /**
+     * Uses iOS system colors for the standard switch color keys (green when on, translucent gray
+     * fill when off). Custom keys set via {@link #setColors} are respected.
+     */
+    private int iosTrackColor(int key, boolean checked) {
+        final boolean dark = androidx.core.graphics.ColorUtils.calculateLuminance(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider)) < 0.5f;
+        if (checked && (key == Theme.key_switchTrackChecked || key == Theme.key_switch2TrackChecked)) {
+            return dark ? org.telegram.ui.Components.glass.LiquidGlassStyle.SYSTEM_GREEN_DARK : org.telegram.ui.Components.glass.LiquidGlassStyle.SYSTEM_GREEN;
+        }
+        if (!checked && (key == Theme.key_switchTrack || key == Theme.key_switch2Track)) {
+            return dark ? org.telegram.ui.Components.glass.LiquidGlassStyle.SYSTEM_FILL_DARK : org.telegram.ui.Components.glass.LiquidGlassStyle.SYSTEM_FILL_LIGHT;
+        }
+        return Theme.getColor(key, resourcesProvider);
+    }
+
     protected int processColor(int color) {
         return color;
     }
@@ -377,11 +395,13 @@ public class Switch extends View {
             return;
         }
 
-        int width = AndroidUtilities.dp(31);
-        int thumb = AndroidUtilities.dp(20);
-        int x = (getMeasuredWidth() - width) / 2;
-        float y = (getMeasuredHeight() - AndroidUtilities.dpf2(14)) / 2;
-        int tx = x + AndroidUtilities.dp(7) + (int) (AndroidUtilities.dp(17) * progress);
+        // iOS proportions: pill track (51:31) with an inset white thumb.
+        final float trackHeight = Math.min(AndroidUtilities.dpf2(22), getMeasuredHeight());
+        final float trackWidth = Math.min(getMeasuredWidth(), trackHeight * IOS_TRACK_RATIO);
+        final float thumbRadius = trackHeight / 2f - AndroidUtilities.dpf2(1.75f);
+        int x = (int) ((getMeasuredWidth() - trackWidth) / 2);
+        float y = (getMeasuredHeight() - trackHeight) / 2;
+        int tx = (int) (x + trackHeight / 2f + (trackWidth - trackHeight) * progress);
         int ty = getMeasuredHeight() / 2;
 
 
@@ -422,8 +442,8 @@ public class Switch extends View {
                 colorProgress = progress;
             }
 
-            color1 = processColor(Theme.getColor(trackColorKey, resourcesProvider));
-            color2 = processColor(Theme.getColor(trackCheckedColorKey, resourcesProvider));
+            color1 = processColor(iosTrackColor(trackColorKey, false));
+            color2 = processColor(iosTrackColor(trackCheckedColorKey, true));
             if (a == 0 && iconDrawable != null && lastIconColor != (isChecked ? color2 : color1)) {
                 iconDrawable.setColorFilter(new PorterDuffColorFilter(lastIconColor = (isChecked ? color2 : color1), PorterDuff.Mode.MULTIPLY));
             }
@@ -445,9 +465,8 @@ public class Switch extends View {
             paint.setColor(color);
             paint2.setColor(color);
 
-            rectF.set(x, y, x + width, y + AndroidUtilities.dpf2(14));
-            canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(7), AndroidUtilities.dpf2(7), paint);
-            canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dpf2(10), paint);
+            rectF.set(x, y, x + trackWidth, y + trackHeight);
+            canvasToDraw.drawRoundRect(rectF, trackHeight / 2f, trackHeight / 2f, paint);
 
             if (a == 0 && rippleDrawable != null) {
                 rippleDrawable.setBounds(tx - AndroidUtilities.dp(18), ty - AndroidUtilities.dp(18), tx + AndroidUtilities.dp(18), ty + AndroidUtilities.dp(18));
@@ -477,8 +496,8 @@ public class Switch extends View {
                 colorProgress = progress;
             }
 
-            color1 = Theme.getColor(thumbColorKey, resourcesProvider);
-            color2 = processColor(Theme.getColor(thumbCheckedColorKey, resourcesProvider));
+            color1 = thumbColorKey == Theme.key_windowBackgroundWhite ? 0xFFFFFFFF : Theme.getColor(thumbColorKey, resourcesProvider);
+            color2 = processColor(thumbCheckedColorKey == Theme.key_windowBackgroundWhite ? 0xFFFFFFFF : Theme.getColor(thumbCheckedColorKey, resourcesProvider));
             r1 = Color.red(color1);
             r2 = Color.red(color2);
             g1 = Color.green(color1);
@@ -494,7 +513,11 @@ public class Switch extends View {
             alpha = (int) (a1 + (a2 - a1) * colorProgress);
             paint.setColor(((alpha & 0xff) << 24) | ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff));
 
-            canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dp(8), paint);
+            final int thumbColor = paint.getColor();
+            thumbShadowPaint.setColor(Theme.multAlpha(0x26000000, Color.alpha(thumbColor) / 255f));
+            canvasToDraw.drawCircle(tx, ty + AndroidUtilities.dpf2(1f), thumbRadius + AndroidUtilities.dpf2(0.5f), thumbShadowPaint);
+            paint.setColor(thumbColor);
+            canvasToDraw.drawCircle(tx, ty, thumbRadius, paint);
 
             if (a == 0) {
                 if (iconDrawable != null) {

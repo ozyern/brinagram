@@ -1299,6 +1299,7 @@ public class CacheControlActivity extends BaseFragment implements NotificationCe
         listView.setClipToPadding(false);
         listView.setLayoutManager(layoutManager = new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
         listView.setAdapter(listAdapter);
         DefaultItemAnimator itemAnimator = new DefaultItemAnimator() {
             @Override

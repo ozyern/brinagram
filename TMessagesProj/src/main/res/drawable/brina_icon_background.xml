@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BrinaGram launcher icon background: deep warm black that frames the gold medallion. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:type="radial"
+        android:gradientRadius="80%p"
+        android:centerX="0.5"
+        android:centerY="0.45"
+        android:startColor="#FF2B2117"
+        android:endColor="#FF0E0A07" />
+</shape>

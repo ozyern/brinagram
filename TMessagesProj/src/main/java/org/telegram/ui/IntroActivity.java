@@ -105,6 +105,9 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
     private GradientDrawable startMessagingButtonBackground;
     private TextView startMessagingButton;
     private FrameLayout frameLayout2;
+    private org.telegram.ui.Components.glass.AuroraView auroraView;
+    private org.telegram.ui.Components.glass.MedallionView medallionView;
+    private TextureView introTextureView;
     private FrameLayout frameContainerView;
 
     private RLottieDrawable darkThemeDrawable;
@@ -157,7 +160,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
         logoDrawable.setBounds(0, dp(8.666f), dp(115), dp(35));
         SpannableStringBuilder ssb = new SpannableStringBuilder(LocaleController.getString(R.string.Page1Title));
         ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        titles[0] = ssb;
+        titles[0] = "BrinaGram";
 
 
         actionBar.setAddToContainer(false);
@@ -248,7 +251,18 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
         frameContainerView.addView(frameLayout2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP, 0, 78, 0, 0));
 
         TextureView textureView = new TextureView(context);
+        introTextureView = textureView;
         frameLayout2.addView(textureView, LayoutHelper.createFrame(ICON_WIDTH_DP, ICON_HEIGHT_DP, Gravity.CENTER));
+
+        // BrinaGram: the brand medallion replaces the Telegram sphere on the first page and
+        // crossfades into the animated GL icons as the user swipes.
+        medallionView = new org.telegram.ui.Components.glass.MedallionView(context);
+        frameLayout2.addView(medallionView, LayoutHelper.createFrame(ICON_WIDTH_DP, ICON_HEIGHT_DP, Gravity.CENTER));
+        textureView.setAlpha(0f);
+
+        // Warm drifting glow; above the opaque GL view (so it tints it evenly) but below text and buttons.
+        auroraView = new org.telegram.ui.Components.glass.AuroraView(context);
+        frameContainerView.addView(auroraView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         textureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
             public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
@@ -301,6 +315,12 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 bottomPages.setPageOffset(position, positionOffset);
+
+                final float medallionAlpha = Math.max(0f, Math.min(1f, 1f - (position + positionOffset) * 1.6f));
+                medallionView.setAlpha(medallionAlpha);
+                medallionView.setScaleX(0.85f + 0.15f * medallionAlpha);
+                medallionView.setScaleY(0.85f + 0.15f * medallionAlpha);
+                introTextureView.setAlpha(1f - medallionAlpha);
 
                 float width = viewPager.getMeasuredWidth();
                 if (width == 0) {
@@ -375,9 +395,9 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
         startMessagingButton.setText(LocaleController.getString(R.string.StartMessaging));
         startMessagingButton.setGravity(Gravity.CENTER);
         startMessagingButton.setTypeface(AndroidUtilities.bold());
-        startMessagingButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        startMessagingButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         startMessagingButton.setPadding(dp(34), 0, dp(34), 0);
-        frameContainerView.addView(startMessagingButton, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM, 16, 0, 16, 76));
+        frameContainerView.addView(startMessagingButton, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 52, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM, 16, 0, 16, 76));
         startMessagingButton.setOnClickListener(view -> {
             if (startPressed) {
                 return;
@@ -961,13 +981,15 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
     }
 
     private void updateColors(boolean fromTheme) {
-        startMessagingButtonBackground.setColors(new int[]{getThemedColor(Theme.key_featuredStickers_addButton), getThemedColor(Theme.key_featuredStickers_addButton2)});
+        // BrinaGram: champagne-gold pill matching the medallion
+        startMessagingButtonBackground.setColors(new int[]{0xFFD8B07A, 0xFFB07D4A});
+        auroraView.setDark(Theme.isCurrentThemeDark());
         logoDrawable.setColorFilter(Theme.multAlpha(getThemedColor(Theme.key_actionBarDefaultTitle), 0.9f), PorterDuff.Mode.MULTIPLY);
         fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        switchLanguageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
-        startMessagingButton.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
-        startMessagingButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(24), Color.TRANSPARENT, Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
-        darkThemeDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton), PorterDuff.Mode.SRC_IN));
+        switchLanguageTextView.setTextColor(Theme.isCurrentThemeDark() ? 0xFFD8B07A : 0xFFA8763F);
+        startMessagingButton.setTextColor(0xFFFFFFFF);
+        startMessagingButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(26), Color.TRANSPARENT, 0x22FFFFFF));
+        darkThemeDrawable.setColorFilter(new PorterDuffColorFilter(Theme.isCurrentThemeDark() ? 0xFFD8B07A : 0xFFA8763F, PorterDuff.Mode.SRC_IN));
         bottomPages.invalidate();
         if (fromTheme) {
             if (eglThread != null) {

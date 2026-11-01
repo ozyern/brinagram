@@ -1,46 +1,102 @@
+// BrinaGram liquid glass.
+// Lens / dispersion / highlight math ported from Kyant0/AndroidLiquidGlass (Apache-2.0, Copyright 2025 Kyant).
+
 uniform shader img;
 
 uniform float2 resolution;
 uniform float2 center;
-uniform float2 size;
-uniform float4 radius;
-uniform float thickness;
+uniform float2 size;            // half size of the glass rect
+uniform float4 radius;          // (rightBottom, rightTop, leftBottom, leftTop)
+uniform float thickness;        // refraction height (px)
 uniform float refract_index;
 uniform float refract_intensity;
 uniform float4 foreground_color_premultiplied;
+uniform float dispersion;       // 0..1 chromatic aberration
+uniform float highlight;        // 0..1 specular rim strength
+uniform float rim_width;        // px
+uniform float saturation;       // vibrancy, 1 = unchanged
 
-half sdfRect(half2 p, half4 r) {
-  r.xy = (p.x > 0.0) ? r.xy : r.zw;
-  r.x  = (p.y > 0.0) ? r.x  : r.y;
-  half2 q = abs(p) - size + r.x;
-  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r.x;
+float radiusAt(float2 p) {
+    if (p.x >= 0.0) {
+        return p.y >= 0.0 ? radius.x : radius.y;
+    }
+    return p.y >= 0.0 ? radius.z : radius.w;
 }
 
-half4 srcOver(half4 src, half4 dst) {
-    half3 outRGB = (src.rgb + dst.rgb * (1.0 - src.a));
-    float outA = src.a + (1.0 - src.a) * dst.a;
-    return half4(outRGB, outA);
+float sdRoundedRect(float2 p, float2 halfSize, float r) {
+    float2 c = abs(p) - (halfSize - float2(r));
+    return length(max(c, 0.0)) - r + min(max(c.x, c.y), 0.0);
+}
+
+float2 gradSdRoundedRect(float2 p, float2 halfSize, float r) {
+    float2 c = abs(p) - (halfSize - float2(r));
+    if (c.x >= 0.0 || c.y >= 0.0) {
+        return sign(p) * normalize(max(c, 0.0) + float2(0.0001));
+    }
+    float gx = step(c.y, c.x);
+    return sign(p) * float2(gx, 1.0 - gx);
+}
+
+float circleMap(float x) {
+    return 1.0 - sqrt(max(1.0 - x * x, 0.0));
+}
+
+half3 vibrancy(half3 c) {
+    half l = dot(c, half3(0.213, 0.715, 0.072));
+    return clamp(mix(half3(l), c, half(saturation)), 0.0, 1.0);
+}
+
+half4 sampleLens(float2 coord, float2 offset, float2 p, float2 halfSize) {
+    if (dispersion <= 0.0) {
+        return img.eval(coord + offset);
+    }
+    float k = dispersion * (p.x * p.y) / max(halfSize.x * halfSize.y, 1.0);
+    float2 dc = offset * k;
+    float2 base = coord + offset;
+    half4 c = half4(0.0);
+    half4 s;
+    s = img.eval(base + dc);                  c.r += s.r / 3.5;                    c.a += s.a / 7.0;
+    s = img.eval(base + dc * (2.0 / 3.0));    c.r += s.r / 3.5; c.g += s.g / 7.0;  c.a += s.a / 7.0;
+    s = img.eval(base + dc * (1.0 / 3.0));    c.r += s.r / 3.5; c.g += s.g / 3.5;  c.a += s.a / 7.0;
+    s = img.eval(base);                       c.g += s.g / 3.5;                    c.a += s.a / 7.0;
+    s = img.eval(base - dc * (1.0 / 3.0));    c.g += s.g / 3.5; c.b += s.b / 3.0;  c.a += s.a / 7.0;
+    s = img.eval(base - dc * (2.0 / 3.0));    c.b += s.b / 3.0;                    c.a += s.a / 7.0;
+    s = img.eval(base - dc);                  c.r += s.r / 7.0; c.b += s.b / 3.0;  c.a += s.a / 7.0;
+    return c;
 }
 
 half4 main(in float2 fragCoord) {
-  half2 p = fragCoord - center;
-  half sd = sdfRect(p, radius);
-  half2 uv = fragCoord;
-  if (sd < 0.0) {
-    half sdX = sdfRect(p + half2(1.0, 0.0), radius);
-    half sdY = sdfRect(p + half2(0.0, 1.0), radius);
+    float2 p = fragCoord - center;
+    float r = min(radiusAt(p), min(size.x, size.y));
+    float sd = sdRoundedRect(p, size, r);
 
-    half n_cos = max(thickness + sd, 0.0) / thickness;
-    half n_cos2 = n_cos * n_cos;
-    half n_sin = sqrt(1.0 - n_cos2);
-    half3 normal = normalize(half3((sdX - sd) * n_cos, (sdY - sd) * n_cos, n_sin));
+    half4 content;
+    float2 grad = float2(0.0);
+    bool inEdge = sd < 0.0 && -sd < thickness;
 
-    half3 refract_vec = refract(half3(0.0, 0.0, -1.0), normal, 1.0 / refract_index);
-    half h = sd < -thickness ? thickness : sqrt(sd * (-2.0 * thickness - sd));
-    half refract_length = (h + 8.0 * thickness) / -refract_vec.z;
+    if (inEdge) {
+        float amount = thickness * refract_intensity * 4.0 * (refract_index - 1.0);
+        float d = circleMap(1.0 - (-sd) / thickness) * amount;
+        float gradRadius = min(r * 1.5, min(size.x, size.y));
+        grad = normalize(gradSdRoundedRect(p, size, gradRadius) + 0.25 * normalize(p + float2(0.0001)));
+        content = sampleLens(fragCoord, -d * grad, p, size);
+    } else {
+        content = img.eval(fragCoord);
+    }
+    content.rgb = vibrancy(content.rgb);
 
-    uv += refract_vec.xy * refract_length * refract_intensity;
-  }
+    half4 color = half4(foreground_color_premultiplied) + content * (1.0 - half(foreground_color_premultiplied.a));
 
-  return srcOver(half4(foreground_color_premultiplied), img.eval(uv));
+    if (highlight > 0.0 && sd < 0.0) {
+        float gradRadius = min(r * 1.5, min(size.x, size.y));
+        float2 n = gradSdRoundedRect(p, size, gradRadius);
+        // light from top-left (45deg) and a weaker bounce from bottom-right
+        float lit = dot(n, normalize(float2(-1.0, -1.0)));
+        float spec = lit > 0.0 ? lit : -lit * 0.55;
+        float rim = 1.0 - smoothstep(0.0, rim_width, -sd);
+        float glow = 1.0 - smoothstep(0.0, thickness * 1.6, -sd);
+        float a = highlight * (rim * (0.35 + 0.65 * spec) * 0.75 + glow * glow * spec * 0.14);
+        color.rgb = min(color.rgb + half3(a) * color.a, half3(1.0));
+    }
+    return color;
 }

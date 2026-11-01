@@ -587,6 +587,7 @@ public class PrivacyControlActivity extends BaseFragment implements Notification
         listView.setVerticalScrollBarEnabled(false);
         ((DefaultItemAnimator) listView.getItemAnimator()).setDelayAnimations(false);
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
         listView.setAdapter(listAdapter);
         listView.setOnItemClickListener((view, position) -> {
             if (position == currentPhotoForRestRow) {
