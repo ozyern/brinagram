@@ -2835,8 +2835,9 @@ public class ChatActivityEnterView extends FrameLayout implements
             };
             attachButton.setScaleType(ImageView.ScaleType.CENTER);
             attachButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-            attachButton.setImageResource(R.drawable.msg_input_attach2);
-            attachButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
+            // BrinaGram: a plus on a glass disc instead of the paperclip
+            attachButton.setImageResource(R.drawable.brina_input_plus);
+            attachButton.setBackground(new org.telegram.ui.Components.glass.GlassCircleDrawable(resourcesProvider).setFixedDiameter(AndroidUtilities.dp(34)));
             messageEditTextContainer.addView(attachButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT));
             attachButton.setOnClickListener(v -> {
                 if (adjustPanLayoutHelper != null && adjustPanLayoutHelper.animationInProgress() || attachLayoutPaddingAlpha == 0f) {

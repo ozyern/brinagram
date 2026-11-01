@@ -2679,6 +2679,8 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
         if (enabled) {
             insetGrouped = new org.telegram.ui.Components.glass.InsetGroupedDecoration(resourcesProvider);
             addItemDecoration(insetGrouped);
+            // settings-style lists also get the iOS rubber-band overscroll
+            org.telegram.ui.Components.glass.BounceEdgeEffectFactory.apply(this);
             addOnChildAttachStateChangeListener(insetGroupedAttachListener);
             for (int i = 0; i < getChildCount(); i++) {
                 insetGrouped.onChildAttached(getChildAt(i));

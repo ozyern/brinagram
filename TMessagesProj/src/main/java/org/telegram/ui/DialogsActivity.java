@@ -3516,7 +3516,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo_2).mutate();
                 logoDrawable.setBounds(0, dp(2), logoDrawable.getIntrinsicWidth(), dp(2) + logoDrawable.getIntrinsicHeight());
                 logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);
-                // BrinaGram: the app name as text, not the Telegram wordmark image
+                // BrinaGram: the app name as text, not the Telegram wordmark image, as a large title
+                actionBar.brinaLargeTitle = true;
                 SpannableStringBuilder ssb = new SpannableStringBuilder(org.telegram.messenger.BrinaBrand.APP_NAME);
                 actionBar.setTitle(ssb, statusDrawable);
                 updateStatus(UserConfig.getInstance(currentAccount).getCurrentUser(), false);
