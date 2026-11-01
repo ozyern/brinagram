@@ -8930,6 +8930,16 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return;
         }
         scrollYOffset = value;
+        // BrinaGram: the large title shrinks towards a normal one as the list scrolls up
+        if (actionBar != null && actionBar.brinaLargeTitle && actionBar.getTitleTextView() != null) {
+            final View title = actionBar.getTitleTextView();
+            final float collapse = MathUtils.clamp(-value / Math.max(1f, getMaxScrollYOffset()), 0f, 1f);
+            final float titleScale = 1f - 0.32f * collapse;
+            title.setPivotX(0);
+            title.setPivotY(title.getHeight() / 2f);
+            title.setScaleX(titleScale);
+            title.setScaleY(titleScale);
+        }
         if (topBulletin != null) {
             topBulletin.updatePosition();
         }

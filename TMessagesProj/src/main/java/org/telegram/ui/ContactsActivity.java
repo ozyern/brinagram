@@ -409,6 +409,7 @@ public class ContactsActivity extends BaseFragment implements FactorAnimator.Tar
         }
 
         listView = new RecyclerListView(context);
+        org.telegram.ui.Components.glass.BounceEdgeEffectFactory.apply(listView); // BrinaGram: iOS rubber-band scrolling
         searchListViewAdapter = new SearchAdapter(listView, context, ignoreUsers, selectedContacts, allowUsernameSearch, false, false, allowBots, allowSelf, true, 0, resourceProvider) {
             @Override
             protected void onSearchProgressChanged() {
