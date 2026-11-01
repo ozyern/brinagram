@@ -30061,6 +30061,10 @@ public class ChatActivity extends BaseFragment implements
     @Override
     public void onResume() {
         super.onResume();
+        // BrinaGram: unread count beside the back arrow, as in iOS Messages
+        if (actionBar != null && !inPreviewMode) {
+            actionBar.setBackCounter(getMessagesStorage().getMainUnreadCount());
+        }
         checkShowBlur(false);
         activityResumeTime = System.currentTimeMillis();
         if (openImport && getSendMessagesHelper().getImportingHistory(dialog_id) != null) {

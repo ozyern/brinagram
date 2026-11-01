@@ -67,6 +67,16 @@ public class LiquidGlassButtonView extends ImageView {
         invalidate();
     }
 
+    private boolean discVisible = true;
+
+    /** Hides the round pane when the button is part of a wider pill drawn by its parent. */
+    public void setDiscVisible(boolean visible) {
+        if (discVisible != visible) {
+            discVisible = visible;
+            invalidate();
+        }
+    }
+
     public void setDiameter(int px) {
         diameter = px;
         invalidate();
@@ -127,7 +137,9 @@ public class LiquidGlassButtonView extends ImageView {
         disc.setBounds((int) (cx - r), (int) (cy - r), (int) (cx + r), (int) (cy + r));
         disc.setPressLight(PRESS_LIGHT * Math.max(0f, press));
         disc.setAlpha(isEnabled() ? 255 : 102);
-        disc.draw(canvas);
+        if (discVisible) {
+            disc.draw(canvas);
+        }
         canvas.restore();
 
         // the glyph, giving less than the glass around it

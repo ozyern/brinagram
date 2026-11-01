@@ -198,6 +198,34 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
     private boolean glassMode;
     private boolean glassOnlyBack;
     private boolean glassModeIsForum;
+    private boolean glassPillStacked;
+
+    // BrinaGram: unread count beside the back arrow, in one pill (iOS Messages)
+    private String backCounterText;
+    private final android.text.TextPaint backCounterPaint = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    {
+        backCounterPaint.setTypeface(AndroidUtilities.bold());
+        backCounterPaint.setTextSize(dp(15));
+    }
+
+    public void setBackCounter(int count) {
+        final String text = count <= 0 ? null : count > 999 ? "999+" : String.valueOf(count);
+        if (!android.text.TextUtils.equals(text, backCounterText)) {
+            backCounterText = text;
+            if (backButtonImageView instanceof org.telegram.ui.Components.glass.LiquidGlassButtonView) {
+                ((org.telegram.ui.Components.glass.LiquidGlassButtonView) backButtonImageView).setDiscVisible(text == null);
+            }
+            invalidate();
+        }
+    }
+
+    /** Extra width the back pill takes for the counter. */
+    private int backCounterExtra() {
+        if (backCounterText == null || !glassMode || backButtonImageView == null || backButtonImageView.getVisibility() != View.VISIBLE) {
+            return 0;
+        }
+        return (int) backCounterPaint.measureText(backCounterText) + dp(8);
+    }
 
     private ChatAvatarContainer chatAvatarContainer;
 
@@ -2254,7 +2282,7 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             final int menuWidthWithPadding = menuWidth + ((hasForcedMenuWidth || hasForcedMenuMinWidth) ? (menuWidth > 0 ? p : 0) : (int) (p * animatorHasMenuItems.getFloatValue()));
             final int rightOffset = lerp(menuWidthWithPadding, Math.max(menuWidthWithPadding, p + s), chatAvatarContainer == null ? 0f : 1f - animatorAvatarContainerHasAvatar.getFloatValue());
 
-            final int leftDefault = lerp(hasBackButton ? s + p : 0, s + p, chatAvatarContainer == null? 0f : 1f - animatorAvatarContainerHasAvatar.getFloatValue());
+            final int leftDefault = lerp(hasBackButton ? s + p + backCounterExtra() : 0, s + p, chatAvatarContainer == null? 0f : 1f - animatorAvatarContainerHasAvatar.getFloatValue());
             final int rightDefault = getWidth() - rightOffset;
             final int widthDefault = rightDefault - leftDefault;
             final int left, right;
@@ -2274,12 +2302,35 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 right = rightDefault;
             }
 
-            glassDrawable.setBounds(left, t, right, b);
+            // BrinaGram: iOS Messages header — the pill holds only the name, under the avatar
+            final boolean stacked = chatAvatarContainer != null && !glassModeIsForum && chatAvatarContainer.isBrinaStacked()
+                && searchFactor <= 0f && actionModeFactor <= 0f;
+            if (stacked != glassPillStacked) {
+                glassPillStacked = stacked;
+                if (stacked) {
+                    glassDrawable.setRadius(dp(ChatAvatarContainer.STACKED_PILL_HEIGHT_DP / 2f));
+                } else {
+                    glassDrawable.setRadius(dp(23));
+                }
+            }
+            if (stacked) {
+                final int cy = getHeight() - getCurrentActionBarHeight() / 2;
+                final int pillTop = cy + dp(ChatAvatarContainer.STACKED_PILL_TOP_DP);
+                glassDrawable.setBounds(left, pillTop - p, right, pillTop + dp(ChatAvatarContainer.STACKED_PILL_HEIGHT_DP) + p);
+            } else {
+                glassDrawable.setBounds(left, t, right, b);
+            }
             glassDrawable.draw(canvas);
         }
         if (glassDrawableBack != null && hasBackButton) {
-            glassDrawableBack.setBounds(0, t, s + p * 2, b);
+            final int extra = backCounterExtra();
+            glassDrawableBack.setBounds(0, t, s + p * 2 + extra, b);
             glassDrawableBack.draw(canvas);
+            if (extra > 0) {
+                backCounterPaint.setColor(itemsColor != 0 ? itemsColor : Theme.getColor(Theme.key_actionBarDefaultIcon, resourcesProvider));
+                final float baseline = (t + b) / 2f - (backCounterPaint.descent() + backCounterPaint.ascent()) / 2f;
+                canvas.drawText(backCounterText, p + s - dp(6), baseline, backCounterPaint);
+            }
         }
         if (glassDrawableMenu != null && menuWidth > 0 && !glassOnlyBack && !doNotDrawGlassMenu) {
             glassDrawableMenu.setBounds(getWidth() - Math.max(s, menuWidth) - p * 2, t, getWidth(), b);
