@@ -196,6 +196,7 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
         listView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
         listView.setVerticalScrollBarEnabled(false);
         listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
+        org.telegram.ui.Components.glass.LargeTitleHeader.attachWhenReady(actionBar, listView, getResourceProvider());
         listView.setAdapter(listAdapter);
         DefaultItemAnimator itemAnimator = new DefaultItemAnimator() {
             @Override

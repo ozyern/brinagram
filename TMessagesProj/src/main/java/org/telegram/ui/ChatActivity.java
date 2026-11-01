@@ -1264,6 +1264,7 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_VIEW_STATISTICS = 115;
     public final static int OPTION_WELCOME_REVERT = 116;
     public final static int OPTION_SEND_MONEY = 117;
+    public final static int OPTION_BRINA_REPEAT = 1001;
 
     private final static int[] allowedNotificationsDuringChatListAnimations = new int[]{
             NotificationCenter.messagesRead,
@@ -6721,7 +6722,7 @@ public class ChatActivity extends BaseFragment implements
                 if (!foundTopView) {
                     scrolled = super.scrollVerticallyBy(dy, recycler, state);
                 }
-                final boolean allowPullingDownScroll = !isInPollAddOptionMode() && !hasSelectedMessages();
+                final boolean allowPullingDownScroll = !isInPollAddOptionMode() && !hasSelectedMessages() && !org.telegram.messenger.BrinaConfig.disableJumpToNextChannel;
                 if (allowPullingDownScroll && dy > 0 && scrolled == 0 && (ChatObject.isChannel(currentChat) && !currentChat.megagroup || isTopic && !UserObject.isBotForum(currentUser)) && chatMode != MODE_SAVED && chatMode != MODE_WELCOME_MESSAGES && chatMode != MODE_SCHEDULED && chatListView.getScrollState() == RecyclerView.SCROLL_STATE_DRAGGING && !chatListView.isFastScrollAnimationRunning() && !chatListView.isMultiselect() && !isReport()) {
                     if (pullingDownOffset == 0 && pullingDownDrawable != null) {
                         if (nextChannels != null && !nextChannels.isEmpty()) {
@@ -6826,6 +6827,9 @@ public class ChatActivity extends BaseFragment implements
 
             @Override
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING && org.telegram.messenger.BrinaConfig.hideKeyboardOnChatScroll && chatActivityEnterView != null) {
+                    AndroidUtilities.hideKeyboard(chatActivityEnterView.getEditField());
+                }
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                     if (pollHintCell != null) {
                         pollHintView.showForMessageCell(pollHintCell, -1, pollHintX, pollHintY, true);
@@ -33667,6 +33671,11 @@ public class ChatActivity extends BaseFragment implements
                 presentFragment(fragment);
                 break;
             }
+            case OPTION_BRINA_REPEAT: {
+                getSendMessagesHelper().sendMessage(SendMessagesHelper.SendMessageParams.of(selectedObject.messageOwner.message, dialog_id, null, null, null, false,
+                    selectedObject.messageOwner.entities, null, null, true, 0, 0, null, false));
+                break;
+            }
             case OPTION_COPY: {
                 final TL_iv.RichMessage copyRichMessage = selectedObject.messageOwner != null ? selectedObject.messageOwner.rich_message : null;
                 if (selectedObject.isDice()) {
@@ -46278,6 +46287,14 @@ public class ChatActivity extends BaseFragment implements
                     options.add(OPTION_GIFT);
                     icons.add(R.drawable.menu_gift);
                 }
+            }
+            // BrinaGram: send the same text again
+            if (selectedObject != null && selectedObject.type == MessageObject.TYPE_TEXT && selectedObject.messageOwner != null
+                    && !TextUtils.isEmpty(selectedObject.messageOwner.message) && chatMode == MODE_DEFAULT && !isTopic && threadMessageObject == null
+                    && chatActivityEnterView != null && chatActivityEnterView.getVisibility() == View.VISIBLE && !noforwardsOrPaidMedia) {
+                items.add(LocaleController.getString(R.string.BrinaRepeat));
+                options.add(OPTION_BRINA_REPEAT);
+                icons.add(R.drawable.msg_retry);
             }
             if (message.canDeleteMessage(chatMode == MODE_SCHEDULED, currentChat) && (threadMessageObjects == null || !threadMessageObjects.contains(message)) && !(message != null && message.messageOwner != null && message.messageOwner.action instanceof TLRPC.TL_messageActionTopicCreate)) {
                 items.add(LocaleController.getString(chatMode == MODE_SAVED && threadMessageId != getUserConfig().getClientUserId() ? R.string.Remove : R.string.Delete));

@@ -241,7 +241,7 @@ public class ChatGreetingsView extends LinearLayout {
     }
 
     public void setSticker(TLRPC.Document sticker) {
-        if (sticker == null) {
+        if (sticker == null || org.telegram.messenger.BrinaConfig.disableGreetingSticker) {
             return;
         }
         wasDraw = true;

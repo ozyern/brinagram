@@ -247,6 +247,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
         listView.setAnimateEmptyView(true, RecyclerListView.EMPTY_VIEW_ANIMATION_TYPE_ALPHA);
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
+        org.telegram.ui.Components.glass.LargeTitleHeader.attachWhenReady(actionBar, listView, getResourceProvider());
         listView.setAdapter(listAdapter);
         DefaultItemAnimator itemAnimator = new DefaultItemAnimator();
         itemAnimator.setDurations(150);

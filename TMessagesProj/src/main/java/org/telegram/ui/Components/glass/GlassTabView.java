@@ -163,7 +163,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         invalidate();
     }
 
-    /** Draws the selected tab as a frosted glass capsule (iOS 26 / Exhale style dock). */
+    /** Draws the selected tab as a frosted glass capsule (liquid glass dock). */
     private boolean iosSelector;
 
     private static final Paint bubbleFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);

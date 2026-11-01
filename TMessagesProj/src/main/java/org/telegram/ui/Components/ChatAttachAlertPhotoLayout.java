@@ -175,6 +175,7 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
     private DecelerateInterpolator interpolator = new DecelerateInterpolator(1.5f);
     private FrameLayout cameraPanel;
     private ShutterButton shutterButton;
+    private org.telegram.ui.Components.glass.CameraModeSwitcher cameraModeSwitcher;
     private ZoomControlView zoomControlView;
     private AnimatorSet zoomControlAnimation;
     private Runnable zoomControlHideRunnable;
@@ -1198,7 +1199,20 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
                 }
 
                 int y = getMeasuredHeight() - tooltipTextView.getMeasuredHeight() - dp(12);
-                if (getMeasuredWidth() == dp(126)) {
+                // BrinaGram: the mode switcher takes the tooltip's place under the shutter
+                if (cameraModeSwitcher != null) {
+                    if (getMeasuredWidth() == dp(126)) {
+                        cameraModeSwitcher.layout(0, 0, 0, 0);
+                    } else {
+                        final int sy = getMeasuredHeight() - cameraModeSwitcher.getMeasuredHeight();
+                        cameraModeSwitcher.layout(0, sy, getMeasuredWidth(), sy + cameraModeSwitcher.getMeasuredHeight());
+                        tooltipTextView.layout(0, 0, 0, 0);
+                        y = -1;
+                    }
+                }
+                if (y == -1) {
+                    // tooltip hidden in favour of the mode switcher
+                } else if (getMeasuredWidth() == dp(126)) {
                     tooltipTextView.layout(cx - tooltipTextView.getMeasuredWidth() / 2, getMeasuredHeight(), cx + tooltipTextView.getMeasuredWidth() / 2, getMeasuredHeight() + tooltipTextView.getMeasuredHeight());
                 } else {
                     tooltipTextView.layout(cx - tooltipTextView.getMeasuredWidth() / 2, y, cx + tooltipTextView.getMeasuredWidth() / 2, y + tooltipTextView.getMeasuredHeight());
@@ -1210,6 +1224,12 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
                 }
             }
         };
+        cameraModeSwitcher = new org.telegram.ui.Components.glass.CameraModeSwitcher(context, mode -> {
+            if (shutterButton != null) {
+                shutterButton.setVideoMode(mode == org.telegram.ui.Components.glass.CameraModeSwitcher.MODE_VIDEO);
+            }
+        });
+        cameraPanel.addView(cameraModeSwitcher, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 32, Gravity.BOTTOM));
         cameraPanel.setVisibility(View.GONE);
         cameraPanel.setAlpha(0.0f);
         container.addView(cameraPanel, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 126, Gravity.LEFT | Gravity.BOTTOM));
@@ -1404,6 +1424,8 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
 
         switchCameraButton = new ImageView(context);
         switchCameraButton.setScaleType(ImageView.ScaleType.CENTER);
+        // BrinaGram camera: controls sit on dark discs, as in the system camera
+        switchCameraButton.setBackground(Theme.createCircleDrawable(AndroidUtilities.dp(48), 0x33FFFFFF));
         cameraPanel.addView(switchCameraButton, LayoutHelper.createFrame(48, 48, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
         switchCameraButton.setOnClickListener(v -> {
             if (takingPhoto || cameraView == null || !cameraView.isInited()) {
@@ -1427,6 +1449,7 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
         for (int a = 0; a < 2; a++) {
             flashModeButton[a] = new ImageView(context);
             flashModeButton[a].setScaleType(ImageView.ScaleType.CENTER);
+            flashModeButton[a].setBackground(Theme.createCircleDrawable(AndroidUtilities.dp(40), 0x33FFFFFF));
             flashModeButton[a].setVisibility(View.INVISIBLE);
             cameraPanel.addView(flashModeButton[a], LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.TOP));
             flashModeButton[a].setOnClickListener(currentImage -> {

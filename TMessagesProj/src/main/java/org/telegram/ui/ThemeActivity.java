@@ -1099,6 +1099,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         listView.setLayoutManager(layoutManager = new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
         listView.setVerticalScrollBarEnabled(false);
         listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
+        org.telegram.ui.Components.glass.LargeTitleHeader.attachWhenReady(actionBar, listView, getResourceProvider());
         listView.setAdapter(listAdapter);
         ((DefaultItemAnimator) listView.getItemAnimator()).setDelayAnimations(false);
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));

@@ -68,11 +68,19 @@ public abstract class UniversalFragment extends BaseFragment {
             }
         };
         contentView.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        if (useLargeTitle()) {
+            org.telegram.ui.Components.glass.LargeTitleHeader.attach(actionBar, listView, contentView, getTitle(), getResourceProvider());
+        }
 
         return fragmentView = contentView;
     }
 
     protected abstract CharSequence getTitle();
+
+    /** BrinaGram: large collapsing title above the list. Screens with their own header turn it off. */
+    protected boolean useLargeTitle() {
+        return true;
+    }
     protected abstract void fillItems(ArrayList<UItem> items, UniversalAdapter adapter);
     protected abstract void onClick(UItem item, View view, int position, float x, float y);
     protected abstract boolean onLongClick(UItem item, View view, int position, float x, float y);

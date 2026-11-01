@@ -370,6 +370,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
         actionBar.setAdaptiveBackground(listView);
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
+        org.telegram.ui.Components.glass.LargeTitleHeader.attachWhenReady(actionBar, listView, getResourceProvider());
         listView.setAdapter(adapter = new ListAdapter(context));
         listView.setItemAnimator(null);
         listView.setLayoutAnimation(null);

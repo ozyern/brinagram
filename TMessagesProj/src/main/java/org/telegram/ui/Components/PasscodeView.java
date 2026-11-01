@@ -1948,16 +1948,17 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             addView(imageView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
 
             textView1 = new TextView(context);
-            textView1.setTypeface(AndroidUtilities.bold());
+            textView1.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
             textView1.setTextColor(0xffffffff);
-            textView1.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26);
+            textView1.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 32);
             textView1.setGravity(Gravity.CENTER);
             addView(textView1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, -5.33f, 0, 0));
 
             textView2 = new TextView(context);
             textView2.setTypeface(AndroidUtilities.bold());
-            textView2.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
-            textView2.setTextColor(0x7fffffff);
+            textView2.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 9.5f);
+            textView2.setLetterSpacing(0.2f);
+            textView2.setTextColor(0x99ffffff);
             textView2.setGravity(Gravity.CENTER);
             addView(textView2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 14, 0, 0));
         }

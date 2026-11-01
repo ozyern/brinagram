@@ -221,6 +221,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressLint("HardwareIds")
 public class LoginActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
+    /** BrinaGram: champagne gold, as on the welcome screen. */
+    private static final int BRINA_GOLD = 0xFFC08A52;
     public final static boolean ENABLE_PASTED_TEXT_PROCESSING = false;
     private final static int SHOW_DELAY = SharedConfig.getDevicePerformanceClass() <= SharedConfig.PERFORMANCE_CLASS_AVERAGE ? 150 : 100;
 
@@ -2019,7 +2021,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             setGravity(Gravity.CENTER);
 
             titleView = new TextView(context);
-            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
             titleView.setTypeface(AndroidUtilities.bold());
             titleView.setText(getString(activityMode == MODE_CHANGE_PHONE_NUMBER ? R.string.ChangePhoneNewNumber : R.string.YourNumber));
             titleView.setGravity(Gravity.CENTER);
@@ -3643,7 +3645,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             confirmTextView.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
 
             titleTextView = new TextView(context);
-            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
             titleTextView.setTypeface(AndroidUtilities.bold());
             titleTextView.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
             titleTextView.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
@@ -5364,7 +5366,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             addView(lockFrameLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
 
             titleView = new TextView(context);
-            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
             titleView.setTypeface(AndroidUtilities.bold());
             titleView.setText(getString(R.string.YourPasswordHeader));
             titleView.setGravity(Gravity.CENTER);
@@ -5718,7 +5720,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             innerLinearLayout.addView(waitFrameLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
 
             titleView = new TextView(context);
-            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
             titleView.setTypeface(AndroidUtilities.bold());
             titleView.setText(getString(R.string.ResetAccount));
             titleView.setGravity(Gravity.CENTER);
@@ -5927,7 +5929,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             addView(inboxFrameLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
 
             titleView = new TextView(context);
-            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
             titleView.setTypeface(AndroidUtilities.bold());
             titleView.setText(getString(activityMode == MODE_CHANGE_LOGIN_EMAIL ? R.string.EnterNewEmail : R.string.AddEmailTitle));
             titleView.setGravity(Gravity.CENTER);
@@ -6292,7 +6294,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             addView(inboxFrameLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
 
             titleView = new TextView(context);
-            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
             titleView.setTypeface(AndroidUtilities.bold());
             titleView.setText(getString(activityMode == MODE_CHANGE_LOGIN_EMAIL ? R.string.CheckYourNewEmail : setup ? R.string.VerificationCode : R.string.CheckYourEmail));
             titleView.setGravity(Gravity.CENTER);
@@ -7096,7 +7098,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             addView(inboxFrameLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
 
             titleView = new TextView(context);
-            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
             titleView.setTypeface(AndroidUtilities.bold());
             titleView.setText(getString(R.string.EnterCode));
             titleView.setGravity(Gravity.CENTER);
@@ -7385,7 +7387,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             outlineFields = new OutlineTextContainerView[codeField.length];
 
             titleTextView = new TextView(context);
-            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
             titleTextView.setTypeface(AndroidUtilities.bold());
             titleTextView.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
             titleTextView.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
@@ -7957,7 +7959,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
             titleTextView = new TextView(context);
             titleTextView.setText(getString(R.string.RegistrationProfileInfo));
-            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
             titleTextView.setTypeface(AndroidUtilities.bold());
             titleTextView.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
             titleTextView.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -8484,11 +8486,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         proxyDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), PorterDuff.Mode.SRC_IN));
         proxyButtonView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)));
 
-        radialProgressView.setProgressColor(Theme.getColor(Theme.key_chats_actionBackground));
+        radialProgressView.setProgressColor(BRINA_GOLD);
 
         floatingButton.updateColors();
-        floatingButtonIcon.setColor(Theme.getColor(Theme.key_chats_actionIcon));
-        floatingButtonIcon.setBackgroundColor(Theme.getColor(Theme.key_chats_actionBackground));
+        floatingButtonIcon.setColor(0xFFFFFFFF);
+        floatingButtonIcon.setBackgroundColor(BRINA_GOLD);
 
         for (SlideView slideView : views) {
             slideView.updateColors();
@@ -8655,8 +8657,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         }
 
         private void updateColors() {
-            fabTransform.setColor(Theme.getColor(Theme.key_chats_actionIcon));
-            fabTransform.setBackgroundColor(Theme.getColor(Theme.key_chats_actionBackground));
+            fabTransform.setColor(0xFFFFFFFF);
+            fabTransform.setBackgroundColor(BRINA_GOLD);
             popupLayout.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(12), Theme.getColor(Theme.key_dialogBackground)));
             confirmMessageView.setTextColor(Theme.getColor(Theme.key_dialogTextGray2));
             numberView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
@@ -8918,7 +8920,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             addView(imageView, LayoutHelper.createLinear(95, 95, Gravity.CENTER_HORIZONTAL, 0, 10, 0, 5));
 
             titleTextView = new TextView(context);
-            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
             titleTextView.setTypeface(AndroidUtilities.bold());
             titleTextView.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
             titleTextView.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);

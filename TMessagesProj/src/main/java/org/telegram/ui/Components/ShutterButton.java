@@ -78,6 +78,17 @@ public class ShutterButton extends View {
         state = State.DEFAULT;
     }
 
+    private boolean videoMode;
+
+    /** Video mode: a tap starts recording and the next tap stops it (no hold needed). */
+    public void setVideoMode(boolean videoMode) {
+        this.videoMode = videoMode;
+    }
+
+    public boolean isVideoMode() {
+        return videoMode;
+    }
+
     public void setDelegate(ShutterButtonDelegate shutterButtonDelegate) {
         delegate = shutterButtonDelegate;
     }
@@ -114,38 +125,49 @@ public class ShutterButton extends View {
         return state;
     }
 
+    // BrinaGram camera shutter: a thin translucent ring around a glowing orange disc that
+    // dips when pressed and morphs into a red rounded square while recording.
+    private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint discPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.RectF recordRect = new android.graphics.RectF();
+    {
+        ringPaint.setStyle(Paint.Style.STROKE);
+    }
+
+    private void drawBrinaShutter(Canvas canvas, int cx, int cy) {
+        final float press = Math.max(0f, Math.min(1f, (getScaleX() - 1.0f) / 0.06f));
+        final float ringR = AndroidUtilities.dp(36);
+        ringPaint.setStrokeWidth(AndroidUtilities.dpf2(3f));
+        ringPaint.setColor(0x66FFFFFF);
+        canvas.drawCircle(cx, cy, ringR - AndroidUtilities.dpf2(1.5f), ringPaint);
+
+        final float record = state == State.RECORDING ? redProgress : 0f;
+        final float discR = AndroidUtilities.dp(30) * (1f - 0.08f * press);
+        discPaint.setShader(new android.graphics.LinearGradient(cx, cy - discR, cx, cy + discR,
+            androidx.core.graphics.ColorUtils.blendARGB(0xFFF6A44E, 0xFFFF453A, record),
+            androidx.core.graphics.ColorUtils.blendARGB(0xFFE8742A, 0xFFE0322B, record),
+            android.graphics.Shader.TileMode.CLAMP));
+        discPaint.setShadowLayer(AndroidUtilities.dp(12), 0, 0, androidx.core.graphics.ColorUtils.blendARGB(0x66F08A3C, 0x66FF453A, record));
+        // recording: shrink to a 26dp rounded square
+        final float half = discR + (AndroidUtilities.dp(13) - discR) * record;
+        final float corner = half * (1f - 0.65f * record);
+        recordRect.set(cx - half, cy - half, cx + half, cy + half);
+        canvas.drawRoundRect(recordRect, corner, corner, discPaint);
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         int cx = getMeasuredWidth() / 2;
         int cy = getMeasuredHeight() / 2;
 
-        shadowDrawable.setBounds(cx - AndroidUtilities.dp(36), cy - AndroidUtilities.dp(36), cx + AndroidUtilities.dp(36), cy + AndroidUtilities.dp(36));
-        shadowDrawable.draw(canvas);
-        if (pressed || getScaleX() != 1.0f) {
-            float scale = (getScaleX() - 1.0f) / 0.06f;
-            whitePaint.setAlpha((int) (255 * scale));
-            canvas.drawCircle(cx, cy, AndroidUtilities.dp(26), whitePaint);
-
-            if (state == State.RECORDING) {
-                if (redProgress != 1.0f) {
-                    long dt = Math.abs(System.currentTimeMillis() - lastUpdateTime);
-                    if (dt > 17) {
-                        dt = 17;
-                    }
-                    totalTime += dt;
-                    if (totalTime > 120) {
-                        totalTime = 120;
-                    }
-                    redProgress = interpolator.getInterpolation(totalTime / 120.0f);
-                    invalidate();
-                }
-                canvas.drawCircle(cx, cy, AndroidUtilities.dp(26.5f) * scale * redProgress, redPaint);
-            } else if (redProgress != 0) {
-                canvas.drawCircle(cx, cy, AndroidUtilities.dp(26.5f) * scale, redPaint);
-            }
-        } else if (redProgress != 0) {
-            redProgress = 0;
+        if (state == State.RECORDING && redProgress != 1.0f) {
+            long dt = Math.min(17, Math.abs(System.currentTimeMillis() - lastUpdateTime));
+            lastUpdateTime = System.currentTimeMillis();
+            totalTime = Math.min(240, totalTime + dt);
+            redProgress = interpolator.getInterpolation(totalTime / 240.0f);
+            invalidate();
         }
+        drawBrinaShutter(canvas, cx, cy);
     }
 
     @Override
@@ -159,7 +181,9 @@ public class ShutterButton extends View {
         float y = motionEvent.getY();
         switch (motionEvent.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                AndroidUtilities.runOnUIThread(longPressed, LONG_PRESS_TIME);
+                if (!videoMode) {
+                    AndroidUtilities.runOnUIThread(longPressed, LONG_PRESS_TIME);
+                }
                 pressed = true;
                 processRelease = true;
                 setHighlighted(true);
@@ -167,7 +191,9 @@ public class ShutterButton extends View {
             case MotionEvent.ACTION_UP:
                 setHighlighted(false);
                 AndroidUtilities.cancelRunOnUIThread(longPressed);
-                if (processRelease) {
+                if (videoMode && state != State.RECORDING) {
+                    delegate.shutterLongPressed(); // start recording
+                } else if (processRelease) {
                     delegate.shutterReleased();
                 }
                 break;

@@ -205,7 +205,7 @@ public class ActionBarMenuSubItem extends FrameLayout {
 
     public void setTextAndIcon(CharSequence text, int icon, Drawable iconDrawable) {
         if (org.telegram.ui.Components.glass.LiquidGlassStyle.MENU_TEXT_ONLY && checkView == null && !android.text.TextUtils.isEmpty(text)) {
-            // BrinaGram: text-only menus, as ColorOS / iOS context menus
+            // BrinaGram: text-only context menus
             textView.setText(text);
             iconResId = icon;
             imageView.setVisibility(GONE);

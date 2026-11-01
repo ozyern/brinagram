@@ -312,6 +312,7 @@ public class PrivacySettingsActivity extends BaseFragment implements Notificatio
         listView.setItemAnimator(null);
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
+        org.telegram.ui.Components.glass.LargeTitleHeader.attachWhenReady(actionBar, listView, getResourceProvider());
         listView.setAdapter(listAdapter);
         listView.setOnItemClickListener((view, position) -> {
             if (!view.isEnabled()) {

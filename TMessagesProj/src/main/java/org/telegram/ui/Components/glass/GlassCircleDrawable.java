@@ -19,7 +19,7 @@ import org.telegram.ui.ActionBar.Theme;
 
 /**
  * A disc of glass for round bar controls (back button, toolbar icons): a light film (16% dark /
- * 20% light, as Exhale's chrome glass), a soft drop shadow and a specular rim lit from the
+ * 20% light), a soft drop shadow and a specular rim lit from the
  * top-left. Can also act as a pressed-state background via {@link #setPressLight}.
  */
 public class GlassCircleDrawable extends Drawable {

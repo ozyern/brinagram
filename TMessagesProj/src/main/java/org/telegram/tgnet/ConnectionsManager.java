@@ -1130,7 +1130,7 @@ public class ConnectionsManager extends BaseController {
                 }
             }
             if (hasIpv6) {
-                if (forceTryIpV6) {
+                if (forceTryIpV6 || org.telegram.messenger.BrinaConfig.preferIPv6) {
                     return USE_IPV6_ONLY;
                 }
                 if (hasStrangeIpv4) {

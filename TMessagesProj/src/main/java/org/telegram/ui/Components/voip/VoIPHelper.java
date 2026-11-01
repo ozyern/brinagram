@@ -73,7 +73,26 @@ public class VoIPHelper {
 
 	private static final int VOIP_SUPPORT_ID = 4244000;
 
+	private static boolean brinaCallConfirmed;
+
 	public static void startCall(TLRPC.User user, boolean videoCall, boolean canVideoCall, final Activity activity, TLRPC.UserFull userFull, AccountInstance accountInstance) {
+		// Brinagram: confirm before calling (Settings > Brinagram > Ask before calling)
+		if (org.telegram.messenger.BrinaConfig.askBeforeCall && !brinaCallConfirmed && activity != null && user != null) {
+			new AlertDialog.Builder(activity)
+				.setTitle(LocaleController.getString(videoCall ? R.string.VideoCall : R.string.Call))
+				.setMessage(LocaleController.formatString(R.string.BrinaCallConfirm, ContactsController.formatName(user.first_name, user.last_name)))
+				.setPositiveButton(LocaleController.getString(R.string.Call), (dialog, which) -> {
+					brinaCallConfirmed = true;
+					try {
+						startCall(user, videoCall, canVideoCall, activity, userFull, accountInstance);
+					} finally {
+						brinaCallConfirmed = false;
+					}
+				})
+				.setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+				.show();
+			return;
+		}
 		if (accountInstance == null ? MessagesController.getInstance(UserConfig.selectedAccount).isFrozen() : accountInstance.getMessagesController().isFrozen()) {
 			AccountFrozenAlert.show(accountInstance == null ? UserConfig.selectedAccount : accountInstance.getCurrentAccount());
 			return;

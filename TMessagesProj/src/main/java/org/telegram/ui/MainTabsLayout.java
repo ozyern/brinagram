@@ -246,8 +246,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     }
 
     // ---------------------------------------------------------------------------------------
-    // BrinaGram liquid dock, ported from Exhale's LiquidTabBar (LiquidGlassBottomBar.kt +
-    // DampedDragAnimation.kt).
+    // BrinaGram liquid dock.
     //
     // A capsule rests behind the selected tab: a pale/dark wash with a soft highlight, and the
     // tab under it drawn in the accent color. Pressing anywhere swells the capsule into clear
@@ -257,7 +256,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     // the capsule has arrived (capped at 180ms) so the motion is never cut off.
     // ---------------------------------------------------------------------------------------
 
-    /** 78dp of swell on a 56dp capsule (Exhale). */
+    /** 78dp of swell on a 56dp capsule. */
     private static final float PRESSED_SCALE = 78f / 56f;
     /** The tab under the capsule grows with the press. */
     private static final float PRESSED_TAB_SCALE = 1.12f;
@@ -313,7 +312,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         };
     }
 
-    // spring(1f, 1000f): stiff and critically damped, as Exhale's value/follow spring
+    // stiff and critically damped
     private final SpringAnimation capsuleXSpring = new SpringAnimation(this, property("capsuleX", o -> o.capsuleX, (o, v) -> o.capsuleX = v))
         .setSpring(new SpringForce().setStiffness(1000f).setDampingRatio(1f));
     private final SpringAnimation pressSpring = new SpringAnimation(this, property("press", o -> o.pressProgress, (o, v) -> o.pressProgress = v))
@@ -661,7 +660,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         }
         canvas.restore();
 
-        // 4. specular highlight (Kyant Highlight.Default: white, 45deg, 0.5 at rest -> 1 held)
+        // 4. specular highlight (white, lit from 45deg; 0.5 at rest -> 1 held)
         drawHighlight(canvas, capsuleRect, r, lerp(0.5f, 1f, press));
 
         if (pressed || press > 0.001f || capsuleXSpring.isRunning() || Math.abs(velocity) > 0.01f) {
@@ -675,7 +674,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         if (!Float.isNaN(lastX) && lastFrameNanos != 0) {
             final float dt = Math.max(1e-3f, Math.min(1f / 30f, (now - lastFrameNanos) / 1e9f));
             final float raw = (capsuleX - lastX) / pitch / dt;
-            // eased towards the raw figure at the rate a 300-stiffness spring would (Exhale)
+            // eased towards the raw figure at the rate a 300-stiffness spring would
             velocity += (raw - velocity) * (1f - (float) Math.exp(-dt * 17f));
             if (Math.abs(velocity) < 0.01f && Math.abs(raw) < 0.01f) {
                 velocity = 0f;

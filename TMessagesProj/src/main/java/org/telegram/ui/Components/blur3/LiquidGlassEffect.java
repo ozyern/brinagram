@@ -29,7 +29,7 @@ public class LiquidGlassEffect {
     public static final float DEFAULT_DISPERSION = 0.5f;
     /** Specular rim highlight strength, 0..1. */
     public static final float DEFAULT_HIGHLIGHT = 0.55f;
-    /** Vibrancy (saturation boost) of the refracted backdrop, same as Kyant's vibrancy(). */
+    /** Vibrancy (saturation boost) of the refracted backdrop, a 1.5x saturation boost. */
     public static final float DEFAULT_SATURATION = 1.5f;
 
     private float dispersion = DEFAULT_DISPERSION;

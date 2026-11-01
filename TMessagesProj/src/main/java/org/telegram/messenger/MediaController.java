@@ -2060,7 +2060,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (!sensorsStarted || VoIPService.getSharedInstance() != null) {
+        if (!sensorsStarted || VoIPService.getSharedInstance() != null || BrinaConfig.disableProximityEvents) {
             return;
         }
         if (event.sensor.getType() == Sensor.TYPE_PROXIMITY) {
@@ -3156,6 +3156,9 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
     }
 
     public void setVoiceMessagesPlaylist(ArrayList<MessageObject> playlist, boolean unread) {
+        if (BrinaConfig.disableVoiceMessageAutoPlay) {
+            playlist = null; // Brinagram: no playing on into the next voice message
+        }
         voiceMessagesPlaylist = playlist != null ? new ArrayList<>(playlist) : null;
         if (voiceMessagesPlaylist != null) {
             voiceMessagesPlaylistUnread = unread;

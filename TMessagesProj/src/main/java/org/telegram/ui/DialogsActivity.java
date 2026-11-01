@@ -12807,6 +12807,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             onlySelfStories = getStoriesController().hasOnlySelfStories();
         }
 
+        if (org.telegram.messenger.BrinaConfig.hideStories) {
+            newVisibility = false;
+            onlySelfStories = false;
+        }
         hasOnlySlefStories = onlySelfStories;
 
         boolean oldStoriesCellVisibility = dialogStoriesCellVisible;

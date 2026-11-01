@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brinagram settings tile glyph: a four-pointed sparkle with a small companion. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M10,3 Q11.2,9.6 17,11 Q11.2,12.4 10,19 Q8.8,12.4 3,11 Q8.8,9.6 10,3 Z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M18,14.5 Q18.5,17 21,17.5 Q18.5,18 18,20.5 Q17.5,18 15,17.5 Q17.5,17 18,14.5 Z" />
+</vector>

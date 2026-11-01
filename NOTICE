@@ -1,0 +1,19 @@
+Brinagram
+Copyright (C) 2026 ozyern
+
+Brinagram is based on Telegram for Android, which is licensed under the
+GNU General Public License, version 2 or (at your option) any later version.
+Brinagram as a whole is distributed under the GNU General Public License,
+version 3. See LICENSE for the GPL text.
+
+Third-party code
+----------------
+
+TMessagesProj/src/main/res/raw/liquid_glass_shader.agsl contains lens,
+dispersion and highlight math adapted from AndroidLiquidGlass
+(https://github.com/Kyant0/AndroidLiquidGlass), Copyright 2025 Kyant,
+licensed under the Apache License, Version 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+
+Brinagram uses its own Telegram API credentials (api_id). It is an
+unofficial client and is not affiliated with Telegram.

@@ -6752,7 +6752,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             sendRoundEnabled = ChatObject.canSendRoundVideo(chat);
             sendVoiceEnabled = ChatObject.canSendVoice(chat);
         }
-        if (!SharedConfig.inappCamera) {
+        if (!SharedConfig.inappCamera || org.telegram.messenger.BrinaConfig.disableInstantCamera) {
             hasRecordVideo = false;
         }
         boolean currentModeVideo = false;
@@ -15176,7 +15176,13 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
             updateColors();
             checkBackgroundRect();
-            if (isNewDesignSendButton) {
+            // BrinaGram: the plain send button is the Brinagram medallion itself
+            final boolean medallionMode = isNewDesignSendButton && !isInScheduleMode() && starsPrice <= 0
+                && Math.abs(backgroundRect.width() - backgroundRect.height()) < dp(1);
+            if (medallionMode && brinaMedallion == null) {
+                brinaMedallion = androidx.core.content.ContextCompat.getDrawable(getContext(), R.drawable.brina_medallion);
+            }
+            if (isNewDesignSendButton && !(medallionMode && brinaMedallion != null)) {
                 canvas.drawRoundRect(backgroundRect, dp(RADIUS), dp(RADIUS), backgroundPaint);
             }
 
@@ -15210,9 +15216,18 @@ public class ChatActivityEnterView extends FrameLayout implements
                 final float s = lerp(0.35f, 1.0f, appear);
                 canvas.scale(s, s, x + drawable.getIntrinsicWidth() / 2f, y + drawable.getIntrinsicHeight() / 2f);
                 canvas.rotate(60 * (1f - appear), x + drawable.getIntrinsicWidth() / 2f, y + drawable.getIntrinsicHeight() / 2f);
-                drawable.setBounds(x, y, x + drawable.getIntrinsicWidth(), y + drawable.getIntrinsicHeight());
-                drawable.setAlpha((int) (0xFF * (1.0f - priceProgress)));
-                drawable.draw(canvas);
+                if (medallionMode && brinaMedallion != null) {
+                    brinaMedallionClip.rewind();
+                    brinaMedallionClip.addOval(backgroundRect, android.graphics.Path.Direction.CW);
+                    canvas.clipPath(brinaMedallionClip);
+                    brinaMedallion.setBounds((int) backgroundRect.left, (int) backgroundRect.top, (int) backgroundRect.right, (int) backgroundRect.bottom);
+                    brinaMedallion.setAlpha((int) (0xFF * (1.0f - priceProgress) * (inactive ? 0.5f : 1f)));
+                    brinaMedallion.draw(canvas);
+                } else {
+                    drawable.setBounds(x, y, x + drawable.getIntrinsicWidth(), y + drawable.getIntrinsicHeight());
+                    drawable.setAlpha((int) (0xFF * (1.0f - priceProgress)));
+                    drawable.draw(canvas);
+                }
                 canvas.restore();
             }
             final float right, cy, h;
@@ -15447,7 +15462,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 drawableInverse.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_messagePanelVoicePressed, resourcesProvider), PorterDuff.Mode.SRC_IN));
             }
             if (isNewDesignSendButton) {
-                backgroundPaint.setColor(Theme.getColor(Theme.key_chat_messagePanelSend, resourcesProvider));
+                backgroundPaint.setColor(0xFFC08A52); // BrinaGram gold for the pill variants
             } else if (shouldDrawBackground()) {
                 backgroundPaint.setColor(getFillColor());
             } else {
@@ -15510,6 +15525,8 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         private final RectF backgroundRect = new RectF();
         private static final int RADIUS = 19;
+        private Drawable brinaMedallion;
+        private final android.graphics.Path brinaMedallionClip = new android.graphics.Path();
 
         private void checkBackgroundRect() {
             final float margin = dpf2(3);

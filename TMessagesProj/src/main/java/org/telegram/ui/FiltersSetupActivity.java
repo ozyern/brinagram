@@ -679,6 +679,7 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
         itemTouchHelper.attachToRecyclerView(listView);
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         listView.setInsetGrouped(true); // BrinaGram: iOS inset grouped style
+        org.telegram.ui.Components.glass.LargeTitleHeader.attachWhenReady(actionBar, listView, getResourceProvider());
         listView.setAdapter(adapter = new ListAdapter(context));
         listView.setOnItemClickListener((view, position, x, y) -> {
             if (position < 0 || position >= items.size()) {

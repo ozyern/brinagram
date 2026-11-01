@@ -18,8 +18,7 @@ import androidx.dynamicanimation.animation.SpringForce;
 import org.telegram.ui.ActionBar.Theme;
 
 /**
- * A round control made of glass: the back button (and other bar icons), as in Exhale's
- * LiquidGlassIconButton / ColorOS.
+ * A round control made of glass: the back button (and other bar icons).
  *
  * <p>A 44dp disc with a light film and a specular rim. Pressed, the disc squishes to 0.92 on an
  * underdamped spring, follows the finger about a third of its width (tanh, so it never slides out

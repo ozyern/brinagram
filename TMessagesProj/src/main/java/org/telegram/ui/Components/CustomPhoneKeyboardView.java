@@ -161,7 +161,7 @@ public class CustomPhoneKeyboardView extends ViewGroup {
         for (int a = 0; a < views.length; a++) {
             final View v = views[a];
             if (v == null) continue;
-            ScaleStateListAnimator.apply(v, 0.02f, 1.2f);
+            ScaleStateListAnimator.apply(v, 0.06f, 1.4f);
             v.setBackground(getButtonDrawable(a));
         }
     }
@@ -249,21 +249,17 @@ public class CustomPhoneKeyboardView extends ViewGroup {
         }
     }
 
+    /** BrinaGram: every key is a soft glass capsule; the delete key has no plate. */
     private static Drawable getButtonDrawable(int index) {
-        final boolean isTop = index < 3;        // 0 1 2
-        final boolean isLeft = index % 3 == 0;  // 0 3 6 9
-        final boolean isRight = index % 3 == 2; // 2 5 8 11
-        final boolean isBottom = index > 8;     // 9 10 11
-
-        final int defaultColor = Theme.getColor(Theme.key_listSelector);
-        final int pressedColor = ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_listSelector), 30);
-
-        return Theme.createSimpleSelectorRoundRectDrawable(
-            dp(isLeft && isTop ? 24 : 12),
-            dp(isRight && isTop ? 24 : 12),
-            dp(isRight && isBottom ? 24 : 12),
-            dp(/*index == 10 || index == 6 ||*/ isLeft && isBottom ? 24 : 12),
-            defaultColor, pressedColor, pressedColor);
+        if (index == 11) {
+            return Theme.createSimpleSelectorRoundRectDrawable(dp(28), 0, ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), 24));
+        }
+        final boolean dark = ColorUtils.calculateLuminance(Theme.getColor(Theme.key_windowBackgroundWhite)) < 0.5f;
+        final int defaultColor = dark ? 0xFF2C2C2E : 0xFFEDEDF0;
+        final int pressedColor = dark ? 0xFF48484A : 0xFFD1D1D6;
+        return new android.graphics.drawable.InsetDrawable(
+            Theme.createSimpleSelectorRoundRectDrawable(dp(28), defaultColor, pressedColor, pressedColor),
+            dp(3), dp(3), dp(3), dp(3));
     }
 
     public void updateColors() {
@@ -292,8 +288,11 @@ public class CustomPhoneKeyboardView extends ViewGroup {
             mNumber = number;
             mSymbols = symbols;
 
-            numberTextPaint.setTextSize(dp(24));
-            symbolsTextPaint.setTextSize(dp(14));
+            numberTextPaint.setTextSize(dp(25));
+            numberTextPaint.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL));
+            symbolsTextPaint.setTextSize(dp(9.5f));
+            symbolsTextPaint.setTypeface(org.telegram.messenger.AndroidUtilities.bold());
+            symbolsTextPaint.setLetterSpacing(0.18f);
 
             updateColors();
         }
@@ -313,8 +312,13 @@ public class CustomPhoneKeyboardView extends ViewGroup {
             symbolsTextPaint.getTextBounds(mSymbols, 0, mSymbols.length(), rect);
             float textOffsetSymbols = rect.height() / 2f;
 
-            canvas.drawText(mNumber, getWidth() * 0.25f - numberWidth / 2f, getHeight() / 2f + textOffsetNumber, numberTextPaint);
-            canvas.drawText(mSymbols, getWidth() * 0.7f - symbolsWidth / 2f, getHeight() / 2f + textOffsetSymbols, symbolsTextPaint);
+            // number centered, letters beneath it (or the number alone, centered)
+            final boolean hasSymbols = mSymbols.length() > 0;
+            final float numberY = getHeight() / 2f + textOffsetNumber - (hasSymbols ? dp(5) : 0);
+            canvas.drawText(mNumber, getWidth() / 2f - numberWidth / 2f, numberY, numberTextPaint);
+            if (hasSymbols) {
+                canvas.drawText(mSymbols, getWidth() / 2f - symbolsWidth / 2f, numberY + dp(4) + textOffsetSymbols * 2, symbolsTextPaint);
+            }
         }
     }
 }
