@@ -12868,11 +12868,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (newVisibility) {
             dialogStoriesCell.setProgressToCollapse(1f, false);
         }
+        final boolean targetVisibility = newVisibility;
         if (animated && !isInPreviewMode()) {
             dialogStoriesCell.setVisibility(View.VISIBLE);
             float fromScrollY = -scrollYOffset;
             float toScrollY;
-            if (!newVisibility) {
+            if (!targetVisibility) {
                 toScrollY = getMaxScrollYOffset();
             } else {
                 toScrollY = 0;
@@ -12885,7 +12886,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 @Override
                 public void onAnimationUpdate(@NonNull ValueAnimator animation) {
                     progressToShowStories = (float) animation.getAnimatedValue();
-                    if (!newVisibility) {
+                    if (!targetVisibility) {
                         progressToShowStories = 1f - progressToShowStories;
                     }
                     int newValue = (int) AndroidUtilities.lerp(fromScrollY, toScrollY, (float) animation.getAnimatedValue());
@@ -12901,11 +12902,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     storiesVisibilityAnimator = null;
-                    hasStories = newVisibility;
+                    hasStories = targetVisibility;
                     if (!hasStories && !hasOnlySlefStories) {
                         dialogStoriesCell.setVisibility(View.GONE);
                     }
-                    if (!newVisibility) {
+                    if (!targetVisibility) {
                         setScrollY(0);
                         scrollAdditionalOffset = dp(DialogStoriesCell.HEIGHT_IN_DP);
                     } else {
