@@ -251,7 +251,17 @@ public class ActionBarMenuItem extends FrameLayout {
         super(context);
         this.resourcesProvider = resourcesProvider;
         if (backgroundColor != 0) {
-            setBackgroundDrawable(Theme.createSelectorDrawable(backgroundColor, text ? 5 : 1));
+            if (text) {
+                setBackgroundDrawable(Theme.createSelectorDrawable(backgroundColor, 5));
+            } else {
+                // BrinaGram: bar icons sit on a disc of glass, as the back button does
+                final org.telegram.ui.Components.glass.GlassCircleDrawable disc = new org.telegram.ui.Components.glass.GlassCircleDrawable(resourcesProvider)
+                    .setFixedDiameter(AndroidUtilities.dp(40));
+                if (iconColor != 0) {
+                    disc.setDarkGlass(androidx.core.graphics.ColorUtils.calculateLuminance(iconColor | 0xFF000000) > 0.5f);
+                }
+                setBackgroundDrawable(disc);
+            }
         }
         parentMenu = menu;
 

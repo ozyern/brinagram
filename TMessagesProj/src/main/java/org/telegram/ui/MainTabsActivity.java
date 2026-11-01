@@ -313,8 +313,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         tabs = new GlassTabView[5];
         tabs[INDEX_CHATS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CHATS, R.string.MainTabsChats);
-        tabs[INDEX_CONTACTS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CONTACTS, R.string.MainTabsContacts);
-        tabs[INDEX_SETTINGS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.SETTINGS, R.string.Settings);
+        tabs[INDEX_CONTACTS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.BRINA_CONTACTS, R.string.MainTabsContacts);
+        tabs[INDEX_SETTINGS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.BRINA_SETTINGS, R.string.Settings);
         tabs[INDEX_CALLS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CALLS, R.string.MainTabsCalls);
         tabs[INDEX_PROFILE] = GlassTabView.createAvatar(context, resourceProvider, currentAccount, R.string.MainTabsProfile);
         tabs[INDEX_CHATS].setOnLongClickListener(this::openFoldersSelector);
@@ -850,19 +850,32 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     public GlassTabView[] tabs;
 
     public void selectTab(int position, boolean animated) {
+        GlassTabView selected = null;
         for (int a = 0; a < tabs.length; a++) {
-            GlassTabView tab = tabs[a];
-            tab.setSelected(indexToPosition(a) == position, animated);
+            if (indexToPosition(a) == position) {
+                selected = tabs[a];
+            }
+        }
+        if (tabsView != null) {
+            // the liquid dock moves its capsule and selects the tab
+            tabsView.setTabSelected(selected, animated);
+        } else {
+            for (int a = 0; a < tabs.length; a++) {
+                tabs[a].setSelected(tabs[a] == selected, animated);
+            }
         }
     }
 
     public void setGestureSelectedOverride(float animatedPosition, boolean allow) {
+        // liquid dock: the capsule rides the page swipe between the two neighbouring tabs
+        GlassTabView from = null, to = null;
+        final int lower = (int) Math.floor(animatedPosition), upper = (int) Math.ceil(animatedPosition);
         for (int index = 0; index < tabs.length; index++) {
             final int position = indexToPosition(index);
-            final float visibility = Math.max(0, 1f - Math.abs(position - animatedPosition));
-            tabs[index].setGestureSelectedOverride(visibility, allow);
+            if (position == lower) from = tabs[index];
+            if (position == upper) to = tabs[index];
         }
-        tabsView.invalidate();
+        tabsView.setGestureCapsule(from, to, animatedPosition - lower, allow);
     }
 
 

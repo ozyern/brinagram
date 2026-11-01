@@ -140,6 +140,29 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         invalidate();
     }
 
+    /**
+     * Liquid dock mode: the dock ({@link org.telegram.ui.MainTabsLayout}) draws the selection lens
+     * and tints whatever is under it, so the tab itself stays in the default color and draws no bubble.
+     */
+    private boolean liquidDock;
+
+    private static final int ANIMATOR_ID_INK = 3;
+    private final BoolAnimator inkAnimator = new BoolAnimator(ANIMATOR_ID_INK, this, CubicBezierInterpolator.EASE_OUT_QUINT, 260);
+
+    /** Liquid dock: lit when the dock capsule is over this tab (follows the capsule, not the page). */
+    public void setInk(boolean ink, boolean animated) {
+        inkAnimator.setValue(ink, animated);
+        if (!animated) {
+            updateColors();
+        }
+    }
+
+    public void setLiquidDock(boolean liquidDock) {
+        this.liquidDock = liquidDock;
+        updateColors();
+        invalidate();
+    }
+
     /** Draws the selected tab as a frosted glass capsule (iOS 26 / Exhale style dock). */
     private boolean iosSelector;
 
@@ -199,7 +222,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
     protected void dispatchDraw(@NonNull Canvas canvas) {
         final float viewWidth = hasVisualWidth ? visualWidth : getWidth();
         final float selectedFactor = hasGestureSelectedOverride ? gestureSelectedOverride : isSelectedAnimator.getFloatValue();
-        if (selectedFactor > 0 && !skipDrawSelector) {
+        if (selectedFactor > 0 && !skipDrawSelector && !liquidDock) {
             final float alpha = AnimatorUtils.DECELERATE_INTERPOLATOR.getInterpolation(selectedFactor);
 
             tmpRectF.set(0, 0, viewWidth, getHeight());
@@ -295,7 +318,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
     @Override
     public void onFactorChanged(int id, float factor, float fraction, FactorAnimator callee) {
-        if (id == ANIMATOR_ID_IS_SELECTED) {
+        if (id == ANIMATOR_ID_IS_SELECTED || id == ANIMATOR_ID_INK) {
             updateColors();
         }
         invalidate();
@@ -304,8 +327,9 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
     private boolean needUpdateBackupViewColor;
 
     private void updateColors() {
-        final int color = ColorUtils.blendARGB(colorDefault, colorSelected, isSelectedAnimator.getFloatValue());
-        final int colorText = ColorUtils.blendARGB(colorDefault, colorSelectedText, isSelectedAnimator.getFloatValue());
+        final float selected = liquidDock ? inkAnimator.getFloatValue() : isSelectedAnimator.getFloatValue();
+        final int color = ColorUtils.blendARGB(colorDefault, colorSelected, selected);
+        final int colorText = ColorUtils.blendARGB(colorDefault, colorSelectedText, selected);
 
         final PorterDuffColorFilter filter = new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN);
         if (backupImageView != null && needUpdateBackupViewColor) {
@@ -611,6 +635,9 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         CALLS(R.raw.tab_calls),
         CHATS(R.raw.tab_chats),
         SETTINGS(R.raw.tab_settings),
+        // BrinaGram dock glyphs
+        BRINA_SETTINGS(TabAnimationType.STATIC, R.drawable.brina_tab_settings),
+        BRINA_CONTACTS(TabAnimationType.STATIC, R.drawable.brina_tab_contacts),
 
         CHECKLIST(R.raw.tab_checklist, R.raw.tab_checklist_reverse),
         COLORS(R.raw.tab_colors, R.raw.tab_colors_reverse),

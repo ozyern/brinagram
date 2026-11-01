@@ -46,9 +46,9 @@ public class BackDrawable extends Drawable {
 
     public BackDrawable(boolean close) {
         super();
-        paint.setStrokeWidth(AndroidUtilities.dp(2));
+        paint.setStrokeWidth(AndroidUtilities.dpf2(1.75f));
         paint.setStrokeCap(Paint.Cap.ROUND);
-        prevPaint.setStrokeWidth(AndroidUtilities.dp(2));
+        prevPaint.setStrokeWidth(AndroidUtilities.dpf2(1.75f));
         prevPaint.setColor(Color.RED);
         alwaysClose = close;
     }

@@ -14,6 +14,9 @@ public final class LiquidGlassStyle {
 
     /** Corner radius of context menus, popups and alert dialogs. */
     public static final int MENU_RADIUS_DP = 20;
+    /** Context / popup menus show text only (the pressed row is an inset pill). */
+    public static final boolean MENU_TEXT_ONLY = true;
+
     /** Top corner radius of bottom sheets. */
     public static final int SHEET_RADIUS_DP = 28;
 

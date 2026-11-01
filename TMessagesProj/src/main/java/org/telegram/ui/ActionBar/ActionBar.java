@@ -263,7 +263,10 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         if (backButtonImageView != null) {
             return;
         }
-        backButtonImageView = new ImageView(getContext());
+        backButtonImageView = new org.telegram.ui.Components.glass.LiquidGlassButtonView(getContext(), resourcesProvider);
+        if (itemsColor != 0) {
+            ((org.telegram.ui.Components.glass.LiquidGlassButtonView) backButtonImageView).setGlyphColor(itemsColor);
+        }
         backButtonImageView.setScaleType(ImageView.ScaleType.CENTER);
         backButtonImageView.setBackgroundDrawable(Theme.createSelectorDrawable(itemsBackgroundColor));
         backButtonImageView.setPadding(dp(1), 0, 0, 0);
@@ -1815,6 +1818,9 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             }
         } else {
             itemsColor = color;
+            if (backButtonImageView instanceof org.telegram.ui.Components.glass.LiquidGlassButtonView && color != 0) {
+                ((org.telegram.ui.Components.glass.LiquidGlassButtonView) backButtonImageView).setGlyphColor(color);
+            }
             if (backButtonImageView != null) {
                 if (itemsColor != 0) {
                     Drawable drawable = backButtonImageView.getDrawable();

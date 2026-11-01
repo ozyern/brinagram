@@ -56,6 +56,9 @@ public class ActionBarMenu extends LinearLayout {
         for (int a = 0; a < count; a++) {
             View view = getChildAt(a);
             if (view instanceof ActionBarMenuItem) {
+                if (view.getBackground() instanceof org.telegram.ui.Components.glass.GlassCircleDrawable) {
+                    continue; // BrinaGram: glass discs keep themselves; their press light is built in
+                }
                 view.setBackgroundDrawable(Theme.createSelectorDrawable(isActionMode ? parentActionBar.itemsActionModeBackgroundColor : parentActionBar.itemsBackgroundColor));
             }
         }

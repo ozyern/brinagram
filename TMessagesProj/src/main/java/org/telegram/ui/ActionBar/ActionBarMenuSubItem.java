@@ -204,6 +204,14 @@ public class ActionBarMenuSubItem extends FrameLayout {
     }
 
     public void setTextAndIcon(CharSequence text, int icon, Drawable iconDrawable) {
+        if (org.telegram.ui.Components.glass.LiquidGlassStyle.MENU_TEXT_ONLY && checkView == null && !android.text.TextUtils.isEmpty(text)) {
+            // BrinaGram: text-only menus, as ColorOS / iOS context menus
+            textView.setText(text);
+            iconResId = icon;
+            imageView.setVisibility(GONE);
+            textView.setPadding(0, 0, 0, 0);
+            return;
+        }
         textView.setText(text);
         if (icon != 0 || iconDrawable != null || checkView != null) {
             if (iconDrawable != null) {
@@ -412,7 +420,10 @@ public class ActionBarMenuSubItem extends FrameLayout {
     }
 
     public void updateBackground() {
-        setBackground(Theme.createRadSelectorDrawable(selectorColor, top ? selectorRad : 0, bottom ? selectorRad : 0));
+        // BrinaGram: the pressed row lights up as an inset pill, not a full-width bar
+        final int r = dp(22);
+        setBackground(new android.graphics.drawable.InsetDrawable(Theme.createRadSelectorDrawable(selectorColor, r, r),
+            dp(6), dp(2), dp(6), dp(2)));
     }
 
     private int getThemedColor(int key) {
