@@ -850,9 +850,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     public GlassTabView[] tabs;
 
     public void selectTab(int position, boolean animated) {
+        // Settings and Calls share a position and only one of them is shown: prefer the visible tab
         GlassTabView selected = null;
         for (int a = 0; a < tabs.length; a++) {
-            if (indexToPosition(a) == position) {
+            if (indexToPosition(a) == position && (selected == null || tabs[a].getVisibility() == View.VISIBLE && selected.getVisibility() != View.VISIBLE)) {
                 selected = tabs[a];
             }
         }
@@ -871,6 +872,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         GlassTabView from = null, to = null;
         final int lower = (int) Math.floor(animatedPosition), upper = (int) Math.ceil(animatedPosition);
         for (int index = 0; index < tabs.length; index++) {
+            if (tabs[index].getVisibility() != View.VISIBLE) {
+                continue; // the hidden one of Settings / Calls
+            }
             final int position = indexToPosition(index);
             if (position == lower) from = tabs[index];
             if (position == upper) to = tabs[index];

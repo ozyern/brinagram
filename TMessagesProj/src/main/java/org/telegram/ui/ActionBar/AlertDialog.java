@@ -191,6 +191,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
     private boolean focusable;
 
     private boolean verticalButtons;
+    private boolean brinaCentered;
     private boolean twoRowsButtonsWhenNeeded;
     private boolean buttonsInTwoRows;
 
@@ -667,6 +668,8 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
     }
 
     protected View inflateContent(boolean setContent) {
+        // BrinaGram: plain message alerts use the iOS layout — centered text, stacked full-width buttons
+        brinaCentered = progressViewStyle == ALERT_TYPE_MESSAGE && bottomView == null;
         containerView = new AlertDialogView(getContext());
         containerView.setOrientation(LinearLayout.VERTICAL);
         if ((blurredBackground || progressViewStyle == ALERT_TYPE_SPINNER) && progressViewStyle != ALERT_TYPE_LOADING) {
@@ -808,17 +811,17 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
 
         if (title != null) {
             titleContainer = new FrameLayout(getContext());
-            containerView.addView(titleContainer, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, topAnimationIsNew ? Gravity.CENTER_HORIZONTAL : 0, 24, 0, 24, 0));
+            containerView.addView(titleContainer, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (topAnimationIsNew || brinaCentered) ? Gravity.CENTER_HORIZONTAL : 0, 24, 0, 24, 0));
 
             titleTextView = new SpoilersTextView(getContext(), false);
             NotificationCenter.listenEmojiLoading(titleTextView);
             titleTextView.cacheType = AnimatedEmojiDrawable.CACHE_TYPE_ALERT_PREVIEW;
             titleTextView.setText(title);
             titleTextView.setTextColor(getThemedColor(Theme.key_dialogTextBlack));
-            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, brinaCentered ? 18 : 20);
             titleTextView.setTypeface(AndroidUtilities.bold());
-            titleTextView.setGravity((topAnimationIsNew ? Gravity.CENTER_HORIZONTAL : LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP);
-            titleContainer.addView(titleTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (topAnimationIsNew ? Gravity.CENTER_HORIZONTAL : LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 0, 19, 0, topAnimationIsNew ? 4 : (subtitle != null ? 2 : (items != null ? 14 : 10))));
+            titleTextView.setGravity(((topAnimationIsNew || brinaCentered) ? Gravity.CENTER_HORIZONTAL : LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP);
+            titleContainer.addView(titleTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, ((topAnimationIsNew || brinaCentered) ? Gravity.CENTER_HORIZONTAL : LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 0, 19, 0, topAnimationIsNew ? 4 : (subtitle != null ? 2 : (items != null ? 14 : 10))));
         }
 
         if (secondTitle != null && title != null) {
@@ -881,7 +884,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
             messageTextView.setClickable(false);
             messageTextView.setEnabled(false);
         }
-        messageTextView.setGravity((topAnimationIsNew ? Gravity.CENTER_HORIZONTAL : LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP);
+        messageTextView.setGravity(((topAnimationIsNew || brinaCentered) ? Gravity.CENTER_HORIZONTAL : LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP);
         if (progressViewStyle == ALERT_TYPE_LOADING) {
             containerView.addView(messageTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 24, title == null ? 19 : 0, 24, 20));
 
@@ -917,7 +920,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
             if (aboveMessageView != null) {
                 scrollContainer.addView(aboveMessageView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 22, 4, 22, 12));
             }
-            scrollContainer.addView(messageTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (topAnimationIsNew ? Gravity.CENTER_HORIZONTAL : LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 24, 0, 24, customView != null || items != null ? customViewOffset : 0));
+            scrollContainer.addView(messageTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, ((topAnimationIsNew || brinaCentered) ? Gravity.CENTER_HORIZONTAL : LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 24, 0, 24, customView != null || items != null ? customViewOffset : 0));
             if (bottomView != null) {
                 scrollContainer.addView(bottomView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 22, 12, 22, 0));
             }
@@ -985,6 +988,10 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                         verticalButtons = true;
                     }
                 }
+            }
+            if (brinaCentered) {
+                verticalButtons = true;
+                buttonsInTwoRows = false;
             }
             if (verticalButtons) {
                 LinearLayout linearLayout = new LinearLayout(getContext());
@@ -1129,7 +1136,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                 buttonsLayout.setPadding(dp(8), dp(8), dp(8), dp(8));
             }
             containerView.addView(buttonsLayout, LayoutHelper.createLinear(
-                LayoutHelper.MATCH_PARENT, buttonsInTwoRows ? 96 : 52));
+                LayoutHelper.MATCH_PARENT, verticalButtons ? LayoutHelper.WRAP_CONTENT : buttonsInTwoRows ? 96 : 52));
             if (topAnimationIsNew) {
                 buttonsLayout.setTranslationY(-dp(8));
             }
@@ -1296,7 +1303,9 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                 });
             }
 
-            if (verticalButtons) {
+            if (brinaCentered) {
+                applyBrinaButtons();
+            } else if (verticalButtons) {
                 for (int i = 1; i < buttonsLayout.getChildCount(); i++) {
                     ((ViewGroup.MarginLayoutParams) buttonsLayout.getChildAt(i).getLayoutParams()).topMargin = dp(6);
                 }
@@ -1718,6 +1727,45 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                 positiveButtonText = text;
                 positiveButtonListener = listener;
                 break;
+        }
+    }
+
+    /**
+     * iOS alert buttons: the main action first in bold, the others regular, each a full-width
+     * 50dp row separated by hairlines. Destructive (red) buttons keep their color.
+     */
+    private void applyBrinaButtons() {
+        final LinearLayout layout = (LinearLayout) buttonsLayout;
+        final View positive = layout.findViewWithTag(Dialog.BUTTON_POSITIVE);
+        if (positive != null && layout.indexOfChild(positive) != 0) {
+            layout.removeView(positive);
+            layout.addView(positive, 0);
+        }
+        final int textColor = getThemedColor(Theme.key_dialogTextBlack);
+        final int hairline = androidx.core.graphics.ColorUtils.setAlphaComponent(textColor, 0x26);
+        final int pressed = androidx.core.graphics.ColorUtils.setAlphaComponent(textColor, 0x14);
+        final android.graphics.drawable.GradientDrawable divider = new android.graphics.drawable.GradientDrawable();
+        divider.setColor(hairline);
+        divider.setSize(1, Math.max(1, AndroidUtilities.dp(0.5f)));
+        layout.setDividerDrawable(divider);
+        layout.setShowDividers(LinearLayout.SHOW_DIVIDER_BEGINNING | LinearLayout.SHOW_DIVIDER_MIDDLE);
+        layout.setPadding(0, dp(12), 0, 0);
+        for (int i = 0; i < layout.getChildCount(); i++) {
+            final View child = layout.getChildAt(i);
+            if (!(child instanceof TextView)) {
+                continue;
+            }
+            final TextView button = (TextView) child;
+            final LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) button.getLayoutParams();
+            lp.width = LayoutHelper.MATCH_PARENT;
+            lp.height = dp(50);
+            lp.topMargin = 0;
+            button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
+            button.setTypeface(child == positive ? AndroidUtilities.bold() : android.graphics.Typeface.DEFAULT);
+            if (button.getCurrentTextColor() == getThemedColor(dialogButtonColorKey)) {
+                button.setTextColor(textColor); // keeps red for destructive buttons
+            }
+            button.setBackground(Theme.createSimpleSelectorRoundRectDrawable(0, 0, pressed, pressed));
         }
     }
 

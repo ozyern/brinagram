@@ -157,6 +157,23 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         }
     }
 
+    /** Liquid dock drawing passes: 0 everything, 1 everything except avatars, 2 avatars only. */
+    public static final int DRAW_ALL = 0, DRAW_NO_AVATAR = 1, DRAW_AVATAR_ONLY = 2;
+    public static int liquidDrawMode = DRAW_ALL;
+
+    @Override
+    protected boolean drawChild(@NonNull Canvas canvas, android.view.View child, long drawingTime) {
+        final boolean isAvatar = child == backupImageView && backupImageView != null;
+        if (liquidDrawMode == DRAW_NO_AVATAR && isAvatar || liquidDrawMode == DRAW_AVATAR_ONLY && !isAvatar) {
+            return false;
+        }
+        return super.drawChild(canvas, child, drawingTime);
+    }
+
+    public boolean hasAvatar() {
+        return backupImageView != null && backupImageView.getVisibility() == VISIBLE;
+    }
+
     public void setLiquidDock(boolean liquidDock) {
         this.liquidDock = liquidDock;
         updateColors();

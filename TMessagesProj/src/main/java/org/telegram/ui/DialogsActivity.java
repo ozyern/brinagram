@@ -13841,7 +13841,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
 
         io.show();
-        io.setTranslationY(-dp(64));
+        // BrinaGram: the menu opens below its button instead of covering it
     }
 
     @Override

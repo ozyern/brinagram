@@ -422,8 +422,11 @@ public class ActionBarMenuSubItem extends FrameLayout {
     public void updateBackground() {
         // BrinaGram: the pressed row lights up as an inset pill, not a full-width bar
         final int r = dp(22);
+        // setBackground() replaces the view padding with the drawable's insets: keep ours
+        final int pl = getPaddingLeft(), pt = getPaddingTop(), pr = getPaddingRight(), pb = getPaddingBottom();
         setBackground(new android.graphics.drawable.InsetDrawable(Theme.createRadSelectorDrawable(selectorColor, r, r),
             dp(6), dp(2), dp(6), dp(2)));
+        setPadding(pl, pt, pr, pb);
     }
 
     private int getThemedColor(int key) {

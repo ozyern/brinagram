@@ -671,8 +671,19 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         canvas.saveLayer(capsuleRect, accentLayerPaint);
         final float magnify = lerp(1f, PRESSED_TAB_SCALE, press);
         canvas.scale(magnify, magnify, capsuleX, cy);
+        // photos (the profile avatar) are not tinted: they are drawn as they are, below
+        GlassTabView.liquidDrawMode = GlassTabView.DRAW_NO_AVATAR;
         super.dispatchDraw(canvas);
+        GlassTabView.liquidDrawMode = GlassTabView.DRAW_ALL;
         canvas.restore();
+        if (hasAvatarTab()) {
+            canvas.save();
+            canvas.scale(magnify, magnify, capsuleX, cy);
+            GlassTabView.liquidDrawMode = GlassTabView.DRAW_AVATAR_ONLY;
+            super.dispatchDraw(canvas);
+            GlassTabView.liquidDrawMode = GlassTabView.DRAW_ALL;
+            canvas.restore();
+        }
         // inner shadow while held
         if (press > 0.01f) {
             rimPaint.setShader(null);
@@ -690,6 +701,16 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         if (pressed || press > 0.001f || capsuleXSpring.isRunning() || Math.abs(velocity) > 0.01f) {
             invalidate();
         }
+    }
+
+    private boolean hasAvatarTab() {
+        for (int i = 0; i < getChildCount(); i++) {
+            final View child = getChildAt(i);
+            if (child instanceof GlassTabView && child.getVisibility() == View.VISIBLE && ((GlassTabView) child).hasAvatar()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void trackVelocity() {
