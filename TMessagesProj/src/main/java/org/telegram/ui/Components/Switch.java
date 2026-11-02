@@ -253,7 +253,8 @@ public class Switch extends View {
 
     private void animateToCheckedState(boolean newCheckedState) {
         checkAnimator = ObjectAnimator.ofFloat(this, "progress", newCheckedState ? 1 : 0);
-        checkAnimator.setDuration(200);
+        checkAnimator.setDuration(280);
+        checkAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
         checkAnimator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
@@ -515,9 +516,16 @@ public class Switch extends View {
 
             final int thumbColor = paint.getColor();
             thumbShadowPaint.setColor(Theme.multAlpha(0x26000000, Color.alpha(thumbColor) / 255f));
-            canvasToDraw.drawCircle(tx, ty + AndroidUtilities.dpf2(1f), thumbRadius + AndroidUtilities.dpf2(0.5f), thumbShadowPaint);
+            // the thumb stretches like a drop of liquid while it travels
+            final float thumbStretch = checkAnimator != null ? AndroidUtilities.dpf2(5f) * 4f * progress * (1f - progress) : 0f;
+            final float thumbSquash = thumbStretch * 0.12f;
+            AndroidUtilities.rectTmp.set(tx - thumbRadius - thumbStretch / 2f, ty - thumbRadius + thumbSquash, tx + thumbRadius + thumbStretch / 2f, ty + thumbRadius - thumbSquash);
+            final float thumbCorner = AndroidUtilities.rectTmp.height() / 2f;
+            AndroidUtilities.rectTmp.offset(0, AndroidUtilities.dpf2(1f));
+            canvasToDraw.drawRoundRect(AndroidUtilities.rectTmp, thumbCorner, thumbCorner, thumbShadowPaint);
+            AndroidUtilities.rectTmp.offset(0, -AndroidUtilities.dpf2(1f));
             paint.setColor(thumbColor);
-            canvasToDraw.drawCircle(tx, ty, thumbRadius, paint);
+            canvasToDraw.drawRoundRect(AndroidUtilities.rectTmp, thumbCorner, thumbCorner, paint);
 
             if (a == 0) {
                 if (iconDrawable != null) {

@@ -18,6 +18,7 @@ public class FilledTabsView extends View {
     private final Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint selectedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path selectedPath = new Path();
+    private final org.telegram.ui.Components.glass.LiquidLens lens = new org.telegram.ui.Components.glass.LiquidLens(this).setRefraction(1.05f);
 
     private int textColor = 0xFFFFFFFF;
     private int selectedTextColor = 0xFFFFFFFF;
@@ -93,6 +94,9 @@ public class FilledTabsView extends View {
 
         final int W = getWidth();
         final int H = getHeight();
+        final boolean dark = org.telegram.ui.ActionBar.Theme.isCurrentThemeDark();
+        final int tugSave = canvas.save();
+        canvas.translate(lens.getTugX(), 0);
 
         int w = dp(4) + tabs.length * dp(24) + dp(4);
         for (int i = 0; i < tabs.length; ++i)
@@ -121,10 +125,13 @@ public class FilledTabsView extends View {
         float left = AndroidUtilities.lerp(bounds[l].left + dp(4), bounds[r].left + dp(4), (float) (selectedTabIndex - Math.floor(selectedTabIndex)));
         float right = AndroidUtilities.lerp(bounds[l].right - dp(4), bounds[r].right - dp(4), (float) (selectedTabIndex - Math.floor(selectedTabIndex)));
 
-        AndroidUtilities.rectTmp.set(left, top, right, bottom);
+        lens.setTarget(left, top, right, bottom, false);
+        lens.step();
+        final RectF lensRect = lens.getRect();
+        final float lensRadius = Math.min(lensRect.width(), lensRect.height()) / 2f;
         selectedPath.rewind();
-        selectedPath.addRoundRect(AndroidUtilities.rectTmp, dp(15), dp(15), Path.Direction.CW);
-        canvas.drawRoundRect(AndroidUtilities.rectTmp, dp(15), dp(15), selectedPaint);
+        selectedPath.addRoundRect(lensRect, lensRadius, lensRadius, Path.Direction.CW);
+        lens.drawBody(canvas, selectedPaint.getColor(), dark);
 
         drawTabsText(canvas, textLeft, H, textColor);
 
@@ -132,6 +139,9 @@ public class FilledTabsView extends View {
         canvas.clipPath(selectedPath);
         drawTabsText(canvas, textLeft, H, selectedTextColor);
         canvas.restore();
+
+        lens.drawGlass(canvas, dark);
+        canvas.restoreToCount(tugSave);
     }
 
     private void drawTabsText(Canvas canvas, float x, int height, int color) {

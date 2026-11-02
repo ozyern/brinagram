@@ -1445,6 +1445,8 @@ public class FilterTabsView extends FrameLayout {
         return result;
     }
 
+    private final org.telegram.ui.Components.glass.LiquidLens lens = new org.telegram.ui.Components.glass.LiquidLens(this).setSwell(0.14f, 0.3f).setTugDp(0f);
+
     private void drawSelector(Canvas canvas) {
         final int height = getMeasuredHeight();
         selectorDrawable.setAlpha((int) (255 * listView.getAlpha()));
@@ -1507,9 +1509,12 @@ public class FilterTabsView extends FrameLayout {
             final float add = additionalTabWidth / 2f;
 
             final int y = height / 2 - dp(14);
-            selectorDrawable.setBounds((int) (indicatorX - dp(TAB_INTERNAL_PADDING) - add), y, (int) (indicatorX + indicatorWidth + dp(TAB_INTERNAL_PADDING) + add), y + dp(28));
-            selectorDrawable.setAlpha(31);
-            selectorDrawable.draw(canvas);
+            final boolean dark = org.telegram.ui.Components.glass.GlassTabView.isGlassDark(resourcesProvider);
+            lens.setTarget(indicatorX - dp(TAB_INTERNAL_PADDING) - add, y, indicatorX + indicatorWidth + dp(TAB_INTERNAL_PADDING) + add, y + dp(28),
+                !(animatingIndicator || manualScrollingToPosition != -1));
+            lens.step();
+            lens.drawBody(canvas, Theme.multAlpha(Theme.getColor(tabLineColorKey, resourcesProvider), 31 / 255f * listView.getAlpha()), dark);
+            lens.drawGlass(canvas, dark);
             canvas.restore();
         }
     }

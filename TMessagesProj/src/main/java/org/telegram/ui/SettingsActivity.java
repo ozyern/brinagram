@@ -180,12 +180,14 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
     private FrameLayout avatarContainer;
     private AvatarDrawable avatarDrawable;
     private BackupImageView avatarView;
-    private FrameLayout cameraButton;
-    private FrameLayout cameraBackground;
-    private ImageView cameraImageView;
     private TextView titleView;
     private TextView subtitleView;
     private TextView versionView;
+    private TextView largeTitleView;
+    private LinearLayout searchFieldView;
+    private ImageView searchFieldIcon;
+    private TextView searchFieldHint;
+    private FrameLayout profileCardView;
     public boolean hasMainTabs;
 
     private View navigationBar;
@@ -198,6 +200,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
 
     public SettingsActivity(Bundle args) {
         super(args);
+        resourceProvider = org.telegram.ui.Components.glass.BlackGroupedResources.INSTANCE;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             scrollableViewNoiseSuppressor = new DownscaleScrollableNoiseSuppressor();
@@ -348,9 +351,13 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         });
         searchItem.setSearchFieldHint(getString(R.string.Search));
 
+        // the search opens from the field in the list; the button only hosts the search bar
+        searchItem.setAlpha(0f);
+        searchItem.setClickable(false);
         otherItem = menu.addItem(1, R.drawable.ic_ab_other);
         otherItem.setContentDescription(getString(R.string.AccDescrMoreOptions));
         otherItem.addSubItem(2, R.drawable.msg_leave, getString(R.string.LogOut));
+        otherItem.setVisibility(View.GONE); // Log Out is a row at the end of the list
 
         search = new ProfileActivity.SearchAdapter(this, context) {
             @Override
@@ -362,7 +369,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
 
         listView = new UniversalRecyclerView(this, this::fillItems, this::onClick, this::onLongClick);
         listView.adapter.setApplyBackground(false);
-        listView.setSections();
+        listView.setSections(dp(16), dp(22), false);
         listView.setPadding(0, AndroidUtilities.statusBarHeight + dp(12), 0, AndroidUtilities.navigationBarHeight + additionNavigationBarHeight);
         listView.setClipToPadding(false);
         listView.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -404,10 +411,39 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         imageUpdater.parentFragment = this;
         imageUpdater.setDelegate(this);
 
+        // large title, search field and profile card, above the setting groups
         topView = new FrameLayout(context);
 
+        largeTitleView = new TextView(context);
+        largeTitleView.setText(getString(R.string.Settings));
+        largeTitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 34);
+        largeTitleView.setTypeface(AndroidUtilities.bold());
+        largeTitleView.setSingleLine();
+        topView.addView(largeTitleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.FILL_HORIZONTAL, 20, 6, 20, 0));
+
+        searchFieldView = new LinearLayout(context);
+        searchFieldView.setOrientation(LinearLayout.HORIZONTAL);
+        searchFieldView.setGravity(Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT));
+        searchFieldIcon = new ImageView(context);
+        searchFieldIcon.setScaleType(ImageView.ScaleType.CENTER);
+        searchFieldIcon.setImageResource(R.drawable.outline_header_search);
+        searchFieldView.addView(searchFieldIcon, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 14, 0, 8, 0));
+        searchFieldHint = new TextView(context);
+        searchFieldHint.setText(getString(R.string.Search));
+        searchFieldHint.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        searchFieldHint.setTypeface(AndroidUtilities.bold());
+        searchFieldView.addView(searchFieldHint, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
+        searchFieldView.setOnClickListener(v -> searchItem.openSearch(true));
+        ScaleStateListAnimator.apply(searchFieldView, 0.02f, 1.2f);
+        topView.addView(searchFieldView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 42, Gravity.TOP | Gravity.FILL_HORIZONTAL, 16, 60, 16, 0));
+
+        profileCardView = new FrameLayout(context);
+        profileCardView.setOnClickListener(v -> presentSettingFragment(new UserInfoActivity()));
+        ScaleStateListAnimator.apply(profileCardView, 0.02f, 1.2f);
+        topView.addView(profileCardView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 72, Gravity.TOP | Gravity.FILL_HORIZONTAL, 16, 116, 16, 0));
+
         avatarContainer = new FrameLayout(context);
-        topView.addView(avatarContainer, LayoutHelper.createFrame(120, 120, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 23 - 12, 0, 0));
+        profileCardView.addView(avatarContainer, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, 12, 0, 12, 0));
         avatarContainer.setOnClickListener(v -> {
             TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(UserConfig.getInstance(currentAccount).getClientUserId());
             if (user == null) {
@@ -426,8 +462,8 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
 
         avatarDrawable = new AvatarDrawable();
         avatarView = new BackupImageView(context);
-        avatarView.setRoundRadius(dp(90));
-        avatarContainer.addView(avatarView, LayoutHelper.createFrame(90, 90, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 15, 0, 0));
+        avatarView.setRoundRadius(dp(24));
+        avatarContainer.addView(avatarView, LayoutHelper.createFrame(48, 48));
 
         avatarProgressView = new RadialProgressView(context) {
             private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -445,39 +481,29 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
                 super.onDraw(canvas);
             }
         };
-        avatarProgressView.setSize(AndroidUtilities.dp(26));
+        avatarProgressView.setSize(AndroidUtilities.dp(20));
         avatarProgressView.setProgressColor(0xffffffff);
         avatarProgressView.setNoProgress(false);
-        avatarContainer.addView(avatarProgressView, LayoutHelper.createFrame(90, 90, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 15, 0, 0));
+        avatarContainer.addView(avatarProgressView, LayoutHelper.createFrame(48, 48));
         showAvatarProgress(false, false);
 
-        cameraButton = new FrameLayout(context);
-        cameraButton.setBackground(Theme.createCircleDrawable(dp(32), getThemedColor(Theme.key_windowBackgroundGray)));
-        cameraButton.setPadding(dp(2), dp(2), dp(2), dp(2));
-        cameraBackground = new FrameLayout(context);
-        cameraBackground.setBackground(Theme.createCircleDrawable(dp(30), getThemedColor(Theme.key_featuredStickers_addButton)));
-        cameraImageView = new ImageView(context);
-        cameraImageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        cameraImageView.setImageResource(R.drawable.filled_premium_camera);
-        cameraBackground.addView(cameraImageView, LayoutHelper.createFrame(22, 22, Gravity.CENTER));
-        cameraButton.addView(cameraBackground, LayoutHelper.createFrame(30, 30));
-        avatarContainer.addView(cameraButton, LayoutHelper.createFrame(34, 34, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 32, 75, 0, 0));
-        ScaleStateListAnimator.apply(cameraButton);
+        final LinearLayout profileText = new LinearLayout(context);
+        profileText.setOrientation(LinearLayout.VERTICAL);
+        profileText.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
+        profileCardView.addView(profileText, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, LocaleController.isRTL ? 12 : 72, 0, LocaleController.isRTL ? 72 : 12, 0));
 
         titleView = new TextView(context);
-        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
         titleView.setTypeface(AndroidUtilities.bold());
-        titleView.setGravity(Gravity.CENTER);
         titleView.setSingleLine();
         titleView.setEllipsize(TextUtils.TruncateAt.END);
-        topView.addView(titleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 16, 138.333f - 12, 16, 0));
+        profileText.addView(titleView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
         subtitleView = new TextView(context);
         subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        subtitleView.setGravity(Gravity.CENTER);
         subtitleView.setSingleLine();
         subtitleView.setEllipsize(TextUtils.TruncateAt.END);
-        topView.addView(subtitleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 168 - 12, 0, 0));
+        profileText.addView(subtitleView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
 
         versionView = new TextView(context);
         versionView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
@@ -547,15 +573,12 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         avatarDrawable.setInfo(user);
         avatarView.setForUserOrChat(user, avatarDrawable);
         titleView.setText(UserObject.getUserName(user));
-        final StringBuilder sb = new StringBuilder();
-        if (user != null) {
-            sb.append(PhoneFormat.getInstance().format("+" + user.phone));
-        }
         final String username = UserObject.getPublicUsername(user);
         if (username != null) {
-            sb.append(" • @").append(username);
+            subtitleView.setText("@" + username);
+        } else {
+            subtitleView.setText(user != null ? PhoneFormat.getInstance().format("+" + user.phone) : "");
         }
-        subtitleView.setText(sb);
 
         versionView.setText(getVersionName());
     }
@@ -567,6 +590,11 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         contentView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
         titleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
         subtitleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        largeTitleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        searchFieldHint.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        searchFieldIcon.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteGrayText), PorterDuff.Mode.SRC_IN));
+        searchFieldView.setBackground(Theme.createRoundRectDrawable(dp(21), getThemedColor(Theme.key_windowBackgroundWhite)));
+        profileCardView.setBackground(Theme.createRoundRectDrawable(dp(22), getThemedColor(Theme.key_windowBackgroundWhite)));
         searchItem.updateColor();
 
         final int navigationBarColor = getThemedColor(Theme.key_windowBackgroundWhite);
@@ -598,7 +626,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             final View firstChild = listView.getChildAt(0);
             visible = (
                 listView.getChildAdapterPosition(firstChild) > 0 ||
-                firstChild.getY() + firstChild.getHeight() < actionBar.getHeight()
+                firstChild.getY() + dp(54) < actionBar.getHeight() // the large title has scrolled away
             );
         } else {
             visible = false;
@@ -642,7 +670,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             return;
         }
 
-        items.add(UItem.asCustomShadow(topView, 200 - 12));
+        items.add(UItem.asCustomShadow(topView, 200));
 
         accountNumbers.clear();
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
@@ -716,16 +744,17 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             items.add(UItem.asShadow(null));
         }
 
-        items.add(SettingCell.Factory.of(100, 0xFFE2C08D, 0xFFB07D4A, R.drawable.brina_settings_sparkle, getString(R.string.BrinaSettings), getString(R.string.BrinaSettingsInfo)));
-        items.add(SettingCell.Factory.of(1, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_account, getString(R.string.SettingsAccount), getString(R.string.SettingsAccountInfo)));
-        items.add(SettingCell.Factory.of(2, IconBackgroundColors.ORANGE.top, IconBackgroundColors.ORANGE.bottom, R.drawable.settings_chat, getString(R.string.SettingsChat), getString(R.string.SettingsChatInfo)));
-        items.add(SettingCell.Factory.of(3, IconBackgroundColors.GREEN.top, IconBackgroundColors.GREEN.bottom, R.drawable.settings_privacy, getString(R.string.SettingsPrivacySecurity), getString(R.string.SettingsPrivacySecurityInfo)));
-        items.add(SettingCell.Factory.of(5, IconBackgroundColors.RED.top, IconBackgroundColors.RED.bottom, R.drawable.settings_sounds, getString(R.string.SettingsNotifications), getString(R.string.SettingsNotificationsInfo)));
-        items.add(SettingCell.Factory.of(6, IconBackgroundColors.BLUE_DEEP.top, IconBackgroundColors.BLUE_DEEP.bottom, R.drawable.settings_data, getString(R.string.SettingsData), getString(R.string.SettingsDataInfo)));
-        items.add(SettingCell.Factory.of(7, IconBackgroundColors.BLUE_ALT.top, IconBackgroundColors.BLUE_ALT.bottom, R.drawable.settings_folders, getString(R.string.SettingsFolders), getString(R.string.SettingsFoldersInfo)));
-        items.add(SettingCell.Factory.of(8, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_devices, getString(R.string.SettingsDevices), getString(R.string.SettingsDevicesInfo)));
-        items.add(SettingCell.Factory.of(9, IconBackgroundColors.ORANGE_DEEP.top, IconBackgroundColors.ORANGE_DEEP.bottom, R.drawable.settings_power, getString(R.string.SettingsPowerSaving), getString(R.string.SettingsPowerSavingInfo)));
-        items.add(SettingCell.Factory.of(10, IconBackgroundColors.PURPLE.top, IconBackgroundColors.PURPLE.bottom, R.drawable.settings_language, getString(R.string.SettingsLanguage), LocaleController.getCurrentLanguageName()));
+        items.add(SettingCell.Factory.of(100, 0xFFE2C08D, 0xFFE2C08D, R.drawable.brina_settings_sparkle, getString(R.string.BrinaSettings)));
+        items.add(SettingCell.Factory.of(2, 0xFFFF9F0A, 0xFFFF9F0A, R.drawable.settings_chat, getString(R.string.SettingsChat)));
+        items.add(SettingCell.Factory.of(5, 0xFF0A84FF, 0xFF0A84FF, R.drawable.settings_sounds, getString(R.string.SettingsNotifications)));
+        items.add(SettingCell.Factory.of(7, 0xFF30D158, 0xFF30D158, R.drawable.settings_folders, getString(R.string.SettingsFolders)));
+        items.add(UItem.asShadow(null));
+
+        items.add(SettingCell.Factory.of(3, 0xFF0A84FF, 0xFF0A84FF, R.drawable.settings_privacy, getString(R.string.SettingsPrivacySecurity)));
+        items.add(SettingCell.Factory.of(8, 0xFF64D2FF, 0xFF64D2FF, R.drawable.settings_devices, getString(R.string.SettingsDevices)));
+        items.add(SettingCell.Factory.of(6, 0xFF30D158, 0xFF30D158, R.drawable.settings_data, getString(R.string.SettingsData)));
+        items.add(SettingCell.Factory.of(9, 0xFFFF9F0A, 0xFFFF9F0A, R.drawable.settings_power, getString(R.string.SettingsPowerSaving)));
+        items.add(SettingCell.Factory.of(10, 0xFFBF5AF2, 0xFFBF5AF2, R.drawable.settings_language, getString(R.string.SettingsLanguage), null, LocaleController.getCurrentLanguageName()));
 
         items.add(UItem.asShadow(null));
         if (!walletAbove && getMessagesController().config.walletAvailable.get()) {
@@ -758,11 +787,12 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         if (items.get(items.size() - 1).viewType != UniversalAdapter.VIEW_TYPE_SHADOW)
             items.add(UItem.asShadow(null));
 
-        items.add(UItem.asHeader(getString(R.string.SettingsHelp)));
         items.add(SettingCell.Factory.of(17, IconBackgroundColors.ORANGE.top, IconBackgroundColors.ORANGE.bottom, R.drawable.settings_ask, getString(R.string.AskAQuestion)));
         items.add(SettingCell.Factory.of(18, IconBackgroundColors.BLUE_LIGHT.top, IconBackgroundColors.BLUE_LIGHT.bottom, R.drawable.settings_faq, getString(R.string.TelegramFAQ)));
         items.add(SettingCell.Factory.of(23, IconBackgroundColors.PURPLE.top, IconBackgroundColors.PURPLE.bottom, R.drawable.settings_features, getString(R.string.TelegramFeatures)));
         items.add(SettingCell.Factory.of(19, IconBackgroundColors.GREEN.top, IconBackgroundColors.GREEN.bottom, R.drawable.settings_policy, getString(R.string.PrivacyPolicy)));
+        items.add(UItem.asShadow(null));
+        items.add(SettingCell.Factory.of(27, 0xFFFF453A, 0xFFFF453A, R.drawable.msg_leave, getString(R.string.LogOut)));
 
         if (SharedSettings.experimentalSettingsAllowed.get()) {
             items.add(UItem.asShadow(null));
@@ -838,6 +868,9 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             return;
         }
         switch (item.id) {
+            case 27:
+                presentSettingFragment(new LogoutActivity());
+                break;
             case 100:
                 presentSettingFragment(new BrinaSettingsActivity());
                 break;
@@ -1180,8 +1213,11 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         private final TextView titleView;
         private final TextView subtitleView;
         private final TextView valueView;
+        private final ImageView chevronView;
         private final boolean mini;
         private boolean hasBackground = true;
+        private boolean needDivider;
+        private static final Paint dividerPaint = new Paint();
 
         public SettingCell(Context context, Theme.ResourcesProvider resourcesProvider) {
             this(context, resourcesProvider, false);
@@ -1194,18 +1230,22 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             this.mini = mini;
             setOrientation(HORIZONTAL);
 
+            setWillNotDraw(false);
             iconLayout = new FrameLayout(context);
-            iconLayout.setBackground(iconBackground = new Background());
+            iconBackground = new Background();
 
             iconView = new ImageView(context);
             iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            iconLayout.addView(iconView, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
+            iconLayout.addView(iconView, LayoutHelper.createFrame(26, 26, Gravity.CENTER));
 
             textLayout = new LinearLayout(context);
             textLayout.setOrientation(VERTICAL);
 
             titleView = new TextView(context);
             titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+            titleView.setTypeface(AndroidUtilities.bold());
+            titleView.setSingleLine();
+            titleView.setEllipsize(TextUtils.TruncateAt.END);
             textLayout.addView(titleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 0));
 
             subtitleView = new TextView(context);
@@ -1213,15 +1253,24 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             textLayout.addView(subtitleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 0));
 
             valueView = new TextView(context);
-            valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+            valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+            chevronView = new ImageView(context);
+            chevronView.setScaleType(ImageView.ScaleType.CENTER);
+            chevronView.setImageResource(R.drawable.msg_arrowright);
+            if (mini) {
+                chevronView.setVisibility(View.GONE);
+            }
             if (LocaleController.isRTL) {
-                addView(valueView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 20, 0, 0, 0));
-                addView(textLayout, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1, Gravity.CENTER_VERTICAL | Gravity.FILL_HORIZONTAL, 20, 0, mini ? 12 : 18, 0));
-                addView(iconLayout, LayoutHelper.createLinear(28, 28, Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 0, mini ? 9 : 18, 0));
+                chevronView.setScaleX(-1);
+                addView(chevronView, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 10, 0, 0, 0));
+                addView(valueView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 8, 0, 0, 0));
+                addView(textLayout, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1, Gravity.CENTER_VERTICAL | Gravity.FILL_HORIZONTAL, 12, 0, mini ? 12 : 14, 0));
+                addView(iconLayout, LayoutHelper.createLinear(28, 28, Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 0, mini ? 9 : 14, 0));
             } else {
-                addView(iconLayout, LayoutHelper.createLinear(28, 28, Gravity.CENTER_VERTICAL | Gravity.LEFT, mini ? 9 : 18, 0, 0, 0));
-                addView(textLayout, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1, Gravity.CENTER_VERTICAL | Gravity.FILL_HORIZONTAL,  mini ? 12 : 18, 0, 20, 0));
-                addView(valueView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 0, 0, 20, 0));
+                addView(iconLayout, LayoutHelper.createLinear(28, 28, Gravity.CENTER_VERTICAL | Gravity.LEFT, mini ? 9 : 14, 0, 0, 0));
+                addView(textLayout, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1, Gravity.CENTER_VERTICAL | Gravity.FILL_HORIZONTAL,  mini ? 12 : 14, 0, 12, 0));
+                addView(valueView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 0, 0, 8, 0));
+                addView(chevronView, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 10, 0));
             }
             updateColors();
         }
@@ -1230,7 +1279,8 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         public void updateColors() {
             titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
             subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resourcesProvider));
-            valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText, resourcesProvider));
+            valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resourcesProvider));
+            chevronView.setColorFilter(new PorterDuffColorFilter(Theme.multAlpha(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon, resourcesProvider), 0.7f), PorterDuff.Mode.SRC_IN));
             iconBackground.setDrawBorder(hasBackground && (resourcesProvider != null ? resourcesProvider.isDark() : Theme.isCurrentThemeDark()));
         }
 
@@ -1249,6 +1299,12 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
 
             iconBackground.setColor(iconColorTop, iconColorBottom);
             iconView.setImageResource(icon);
+            // the glyph itself carries the color; icons with their own colors pass no tint
+            if (hasBackground) {
+                iconView.setColorFilter(new PorterDuffColorFilter(iconColorTop, PorterDuff.Mode.SRC_IN));
+            } else {
+                iconView.setColorFilter(null);
+            }
             titleView.setText(title);
             subtitleView.setVisibility((twoLines = !TextUtils.isEmpty(subtitle)) ? View.VISIBLE : View.GONE);
             subtitleView.setText(subtitle);
@@ -1265,8 +1321,27 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
             super.onMeasure(
                 MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(dp(mini ? 44 : twoLines ? 60 : 50), MeasureSpec.EXACTLY)
+                MeasureSpec.makeMeasureSpec(dp(mini ? 44 : twoLines ? 60 : 52), MeasureSpec.EXACTLY)
             );
+        }
+
+        public void setNeedDivider(boolean divider) {
+            if (needDivider != divider) {
+                needDivider = divider;
+                invalidate();
+            }
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            if (needDivider && !mini) {
+                final boolean dark = resourcesProvider != null ? resourcesProvider.isDark() : Theme.isCurrentThemeDark();
+                dividerPaint.setColor(dark ? 0x1AFFFFFF : 0x1F000000);
+                final int inset = dp(56);
+                final float y = getHeight() - Math.max(1, AndroidUtilities.dpf2(0.33f));
+                canvas.drawRect(LocaleController.isRTL ? dp(14) : inset, y, getWidth() - (LocaleController.isRTL ? inset : dp(14)), getHeight(), dividerPaint);
+            }
         }
 
         public static class Background extends Drawable {
@@ -1337,6 +1412,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
                     item.subtext,
                     item.textValue
                 );
+                ((SettingCell) view).setNeedDivider(divider);
             }
 
             public static UItem of(int id, int iconColorTop, int iconColorBottom, int icon, CharSequence title) {
@@ -2082,7 +2158,6 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
 
     private void checkUi_menuItems() {
         final float searchVisible = animatorSearchPageVisible.getFloatValue();
-        FragmentFloatingButton.setAnimatedVisibility(otherItem, 1f - searchVisible);
         if (!hasMainTabs) {
             FragmentFloatingButton.setAnimatedVisibility(actionBar.getBackButton(), 1f);
             return;
@@ -2099,7 +2174,9 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         }
         final float f = Math.abs(searchVisible * 2f - 1f);
         button.setVisibility(View.VISIBLE);
-        button.setAlpha(f);
+        // no button on the main tab at rest: only the search's back arrow shows
+        button.setClickable(back);
+        button.setAlpha(back ? f : 0f);
         button.setScaleX(lerp(0.4f, 1f, f));
         button.setScaleY(lerp(0.4f, 1f, f));
     }

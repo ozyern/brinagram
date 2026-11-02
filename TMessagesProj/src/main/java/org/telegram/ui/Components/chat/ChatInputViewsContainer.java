@@ -216,6 +216,18 @@ public class ChatInputViewsContainer extends FrameLayout {
         checkBlurredHeight(false);
     }
 
+    /** Extra space to the left of the pill, for the round plus; animates when it changes. */
+    private int inputBubbleExtraLeft;
+    private final org.telegram.ui.Components.AnimatedFloat inputBubbleExtraLeftAnimated =
+        new org.telegram.ui.Components.AnimatedFloat(this, 320, org.telegram.ui.Components.CubicBezierInterpolator.EASE_OUT_QUINT);
+
+    public void setInputBubbleExtraLeft(int value) {
+        if (inputBubbleExtraLeft != value) {
+            inputBubbleExtraLeft = value;
+            invalidate();
+        }
+    }
+
     public void setInputBubbleOffsets(float left, float right) {
         inputBubbleOffsetLeft = left;
         inputBubbleOffsetRight = right;
@@ -260,7 +272,7 @@ public class ChatInputViewsContainer extends FrameLayout {
         final int blurTop = getMeasuredHeight() - currentBlurredHeight;
 
         tmpRect.set(
-            Math.round(inputBubbleOffsetLeft),
+            Math.round(inputBubbleOffsetLeft + inputBubbleExtraLeftAnimated.set(inputBubbleExtraLeft)),
             0,
             getMeasuredWidth() - Math.round(inputBubbleOffsetRight),
             inputBubbleHeightRound

@@ -4212,6 +4212,8 @@ public class ChatActivity extends BaseFragment implements
             }
         };
         avatarContainer.setGlassMode();
+        avatarContainer.setClipChildren(false);
+        actionBar.setClipChildren(false);
         avatarContainer.allowShorterStatus = true;
         avatarContainer.premiumIconHiddable = true;
         avatarContainer.allowDrawStories = dialog_id < 0 && !isTopic;
@@ -4640,6 +4642,8 @@ public class ChatActivity extends BaseFragment implements
             avatarContainer.setActionBar(actionBar);
         }
 
+        // the header's name pill hangs a little below the action bar
+        contentView.setClipChildren(false);
         chatInputViewsContainer = new ChatInputViewsContainer(context);
         chatInputViewsContainer.setClipChildren(false);
         chatInputViewsContainer.setWindowInsetsProvider(windowInsetsStateHolder);
@@ -7871,6 +7875,14 @@ public class ChatActivity extends BaseFragment implements
             }
 
             @Override
+            protected void isRecordingStateChanged() {
+                super.isRecordingStateChanged();
+                if (chatInputViewsContainer != null) {
+                    chatInputViewsContainer.setInputBubbleExtraLeft(getBrinaPillLeftInset());
+                }
+            }
+
+            @Override
             public boolean onInterceptTouchEvent(MotionEvent ev) {
                 if (getAlpha() != 1.0f) {
                     return false;
@@ -8129,6 +8141,7 @@ public class ChatActivity extends BaseFragment implements
         checkSendButtonBlockedByTyping(false);
 
         chatInputBubbleContainer.addView(chatActivityEnterView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM, 7, 0, 7, 0));
+        chatInputViewsContainer.setInputBubbleExtraLeft(chatActivityEnterView.getBrinaPillLeftInset());
 
         int chatListIndex = contentView.indexOfChild(chatListView);
         chatListIndex = chatListIndex < 0 ? contentView.getChildCount() : (chatListIndex + 1);
@@ -44526,6 +44539,11 @@ public class ChatActivity extends BaseFragment implements
         if (contentView == null || parentThemeDelegate != null) {
             return;
         }
+        // before the per-chat theme check below: this setting also covers chats with their own theme
+        org.telegram.messenger.BrinaConfig.load();
+        contentView.setForcedBackground(org.telegram.messenger.BrinaConfig.plainChatBackground
+            ? new android.graphics.drawable.ColorDrawable(Theme.isCurrentThemeDark() ? 0xFF000000 : 0xFFFFFFFF)
+            : null);
         if (themeDelegate.backgroundDrawable != null && contentView.getBackgroundImage() != null) {
             return;
         }

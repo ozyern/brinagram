@@ -694,9 +694,33 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
     }
 
 
+    private final org.telegram.ui.Components.glass.LiquidLens lens = new org.telegram.ui.Components.glass.LiquidLens(this).setRefraction(1.08f);
+
+    private void updateLens() {
+        float l = indicatorX + indicatorXAnimationDx;
+        float r = l + indicatorWidth + indicatorWidthAnimationDx;
+        final View current = tabsContainer.getChildAt(currentPosition);
+        if (reordering && current != null) {
+            l += current.getTranslationX();
+            r += current.getTranslationX();
+        }
+        lens.setTarget(
+            getPaddingLeft() + l + dp(4),
+            getPaddingTop() + dp(4),
+            getPaddingLeft() + r - dp(4),
+            getMeasuredHeight() - getPaddingBottom() - dp(4),
+            !animatingIndicator
+        );
+        lens.step();
+    }
+
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
+        updateLens();
+        final float tug = lens.getTugX();
+        float contentLeft = 0f;
         canvas.save();
+        canvas.translate(tug, 0);
         if (backgroundDrawable != null) {
             if (rectT.set(1f) < 1) {
                 checkBoundsAndClipping();
@@ -706,9 +730,19 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
             backgroundDrawable.draw(canvas);
             canvas.clipPath(clipPath);
             canvas.translate(-getScrollX(), 0);
-            canvas.translate(left.set(0), 0);
+            contentLeft = left.set(0);
+            canvas.translate(contentLeft, 0);
         }
         super.dispatchDraw(canvas);
+        canvas.restore();
+
+        // outside the track's clip: the lens swells past the edges of the track
+        final boolean dark = org.telegram.ui.Components.glass.GlassTabView.isGlassDark(resourcesProvider);
+        final int selectorColor = Theme.multAlpha(processColor(Theme.getColor(activeTextColorKey, resourcesProvider)), .15f * tabsContainer.getAlpha());
+        canvas.save();
+        canvas.translate(tug + contentLeft, 0);
+        lens.drawBody(canvas, selectorColor, dark);
+        lens.drawGlass(canvas, dark);
         canvas.restore();
     }
 
@@ -736,35 +770,9 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
     @Override
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
         if (child == tabsContainer) {
-            final boolean result = super.drawChild(canvas, child, drawingTime);
-
-            final int height = getMeasuredHeight();
-            float l = indicatorX + indicatorXAnimationDx;
-            float r = l + indicatorWidth + indicatorWidthAnimationDx;
-
-            final View current = tabsContainer.getChildAt(currentPosition);
-            if (reordering && current != null) {
-                l += current.getTranslationX();
-                r += current.getTranslationX();
-            }
-            int wasAlpha = selectorDrawable.getAlpha();
-            selectorDrawable.setAlpha((int) (wasAlpha * tabsContainer.getAlpha()));
-//            selectorDrawable.setBounds(
-//                (int) l,
-//                height - dpr(4),
-//                (int) r,
-//                height
-//            );
-            selectorDrawable.setBounds(
-                getPaddingLeft() + (int) l + dp(4),
-                getPaddingTop() + dp(4),
-                getPaddingLeft() + (int) r - dp(4),
-                height - getPaddingBottom() - dp(4)
-            );
-            selectorDrawable.draw(canvas);
-            selectorDrawable.setAlpha(wasAlpha);
-
-            return result;
+            final boolean[] result = new boolean[1];
+            lens.drawRefracted(canvas, () -> result[0] |= super.drawChild(canvas, child, drawingTime));
+            return result[0];
         }
         return super.drawChild(canvas, child, drawingTime);
     }

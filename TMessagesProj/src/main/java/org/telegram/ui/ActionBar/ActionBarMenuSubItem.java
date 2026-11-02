@@ -95,6 +95,7 @@ public class ActionBarMenuSubItem extends FrameLayout {
         textView.setEllipsize(TextUtils.TruncateAt.END);
         textView.setTextColor(textColor);
         textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        textView.setTypeface(org.telegram.messenger.AndroidUtilities.bold());
         addView(textView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL));
 
         checkViewLeft = LocaleController.isRTL;
@@ -424,9 +425,27 @@ public class ActionBarMenuSubItem extends FrameLayout {
         final int r = dp(22);
         // setBackground() replaces the view padding with the drawable's insets: keep ours
         final int pl = getPaddingLeft(), pt = getPaddingTop(), pr = getPaddingRight(), pb = getPaddingBottom();
-        setBackground(new android.graphics.drawable.InsetDrawable(Theme.createRadSelectorDrawable(selectorColor, r, r),
+        // inside a popup panel the pill is drawn by the panel, so it can travel between rows
+        setBackground(isInsidePopupLayout() ? null : new android.graphics.drawable.InsetDrawable(Theme.createRadSelectorDrawable(selectorColor, r, r),
             dp(6), dp(2), dp(6), dp(2)));
         setPadding(pl, pt, pr, pb);
+    }
+
+    private boolean isInsidePopupLayout() {
+        android.view.ViewParent parent = getParent();
+        while (parent != null) {
+            if (parent instanceof ActionBarPopupWindow.ActionBarPopupWindowLayout) {
+                return true;
+            }
+            parent = parent.getParent();
+        }
+        return false;
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        updateBackground();
     }
 
     private int getThemedColor(int key) {

@@ -685,7 +685,9 @@ public class MessageDrawable extends Drawable {
                 if (currentType == TYPE_MEDIA) {
                     path.moveTo(bounds.right - dp(8) - radToUse, bounds.bottom - padding);
                 } else {
-                    path.moveTo(bounds.right - dp(2.6f), bounds.bottom - padding);
+                    // BrinaGram: the tail's underside curves back into the bubble
+                    path.moveTo(bounds.right - dp(1.5f), bounds.bottom - padding);
+                    path.quadTo(bounds.right - dp(6), bounds.bottom - padding - dp(0.5f), bounds.right - dp(13), bounds.bottom - padding);
                 }
                 path.lineTo(bounds.left + padding + radToUse, bounds.bottom - padding);
                 rect.set(bounds.left + padding, bounds.bottom - padding - radToUse * 2, bounds.left + padding + radToUse * 2, bounds.bottom - padding);
@@ -734,9 +736,8 @@ public class MessageDrawable extends Drawable {
                 }
             } else {
                 if (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom) {
-                    path.lineTo(bounds.right - dp(8), bounds.bottom - padding - smallRad - dp(3));
-                    rect.set(bounds.right - dp(8), bounds.bottom - padding - smallRad * 2 - dp(9), bounds.right - dp(7) + smallRad * 2, bounds.bottom - padding - dp(1));
-                    path.arcTo(rect, 180, -83, false);
+                    path.lineTo(bounds.right - dp(8), bounds.bottom - padding - dp(11));
+                    path.cubicTo(bounds.right - dp(8), bounds.bottom - padding - dp(5), bounds.right - dp(5.5f), bounds.bottom - padding - dp(1.5f), bounds.right - dp(1.5f), bounds.bottom - padding);
                 } else {
                     path.lineTo(bounds.right - dp(8), top - topY + currentBackgroundHeight);
                 }
@@ -748,7 +749,8 @@ public class MessageDrawable extends Drawable {
                 if (currentType == TYPE_MEDIA) {
                     path.moveTo(bounds.left + dp(8) + radToUse, bounds.bottom - padding);
                 } else {
-                    path.moveTo(bounds.left + dp(2.6f), bounds.bottom - padding);
+                    path.moveTo(bounds.left + dp(1.5f), bounds.bottom - padding);
+                    path.quadTo(bounds.left + dp(6), bounds.bottom - padding - dp(0.5f), bounds.left + dp(13), bounds.bottom - padding);
                 }
                 path.lineTo(bounds.right - padding - radToUse, bounds.bottom - padding);
                 rect.set(bounds.right - padding - radToUse * 2, bounds.bottom - padding - radToUse * 2, bounds.right - padding, bounds.bottom - padding);
@@ -791,9 +793,8 @@ public class MessageDrawable extends Drawable {
                 }
             } else {
                 if (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom) {
-                    path.lineTo(bounds.left + dp(8), bounds.bottom - padding - smallRad - dp(3));
-                    rect.set(bounds.left + dp(7) - smallRad * 2, bounds.bottom - padding - smallRad * 2 - dp(9), bounds.left + dp(8), bounds.bottom - padding - dp(1));
-                    path.arcTo(rect, 0, 83, false);
+                    path.lineTo(bounds.left + dp(8), bounds.bottom - padding - dp(11));
+                    path.cubicTo(bounds.left + dp(8), bounds.bottom - padding - dp(5), bounds.left + dp(5.5f), bounds.bottom - padding - dp(1.5f), bounds.left + dp(1.5f), bounds.bottom - padding);
                 } else {
                     path.lineTo(bounds.left + dp(8), top - topY + currentBackgroundHeight);
                 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Voice button glyph inside the message field: a small sound wave. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path
+        android:pathData="M3.5,11 L3.5,13 M7,9 L7,15 M10.25,5.5 L10.25,18.5 M13.75,8 L13.75,16 M17,6.5 L17,17.5 M20.5,10.5 L20.5,13.5"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round" />
+</vector>

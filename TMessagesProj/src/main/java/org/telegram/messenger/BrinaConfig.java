@@ -16,6 +16,8 @@ public final class BrinaConfig {
     private static volatile boolean loaded;
 
     // Chats
+    /** ChatActivity: a plain black (or white) chat background instead of the wallpaper. */
+    public static boolean plainChatBackground = true;
     /** ChatActivity: dismiss the keyboard when the message list is dragged. */
     public static boolean hideKeyboardOnChatScroll;
     /** ChatActivity: no "swipe up for the next unread channel" at the end of a channel. */
@@ -56,6 +58,7 @@ public final class BrinaConfig {
                 return;
             }
             final SharedPreferences p = prefs();
+            plainChatBackground = p.getBoolean("plainChatBackground", true);
             hideKeyboardOnChatScroll = p.getBoolean("hideKeyboardOnChatScroll", false);
             disableJumpToNextChannel = p.getBoolean("disableJumpToNextChannel", false);
             disableGreetingSticker = p.getBoolean("disableGreetingSticker", false);
@@ -75,6 +78,7 @@ public final class BrinaConfig {
         load();
         final boolean value;
         switch (key) {
+            case "plainChatBackground": value = plainChatBackground = !plainChatBackground; break;
             case "hideKeyboardOnChatScroll": value = hideKeyboardOnChatScroll = !hideKeyboardOnChatScroll; break;
             case "disableJumpToNextChannel": value = disableJumpToNextChannel = !disableJumpToNextChannel; break;
             case "disableGreetingSticker": value = disableGreetingSticker = !disableGreetingSticker; break;
@@ -94,6 +98,7 @@ public final class BrinaConfig {
     public static boolean get(String key) {
         load();
         switch (key) {
+            case "plainChatBackground": return plainChatBackground;
             case "hideKeyboardOnChatScroll": return hideKeyboardOnChatScroll;
             case "disableJumpToNextChannel": return disableJumpToNextChannel;
             case "disableGreetingSticker": return disableGreetingSticker;

@@ -624,6 +624,8 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
 
     private AnimatorSet currentAnimation;
     private DecelerateInterpolator decelerateInterpolator = new DecelerateInterpolator(1.5f);
+    private static final CubicBezierInterpolator PAGE_SLIDE_INTERPOLATOR = new CubicBezierInterpolator(0.32, 0.72, 0.0, 1.0);
+    private static final float PAGE_PARALLAX = 0.28f;
     private OvershootInterpolator overshootInterpolator = new OvershootInterpolator(1.02f);
     private AccelerateDecelerateInterpolator accelerateDecelerateInterpolator = new AccelerateDecelerateInterpolator();
 
@@ -1839,7 +1841,8 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                     dt = 18;
                 }
                 lastFrameTime = newTime;
-                float duration = preview && open ? 190.0f : 150.0f;
+                // pages slide fully across, with the page behind drifting more slowly
+                float duration = preview ? (open ? 190.0f : 150.0f) : 380.0f;
                 animationProgress += dt / duration;
                 if (animationProgress > 1.0f) {
                     animationProgress = 1.0f;
@@ -1882,11 +1885,12 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                         interpolated = CubicBezierInterpolator.EASE_OUT_QUINT.getInterpolation(animationProgress);
                     }
                 } else {
-                    interpolated = decelerateInterpolator.getInterpolation(animationProgress);
+                    interpolated = PAGE_SLIDE_INTERPOLATOR.getInterpolation(animationProgress);
                 }
+                final float pageWidth = containerView.getMeasuredWidth();
                 if (open) {
                     float clampedInterpolated = MathUtils.clamp(interpolated, 0, 1);
-                    containerView.setAlpha(clampedInterpolated);
+                    containerView.setAlpha(preview ? clampedInterpolated : 1f);
                     if (preview) {
                         containerView.setScaleX(0.7f + 0.3f * interpolated);
                         containerView.setScaleY(0.7f + 0.3f * interpolated);
@@ -1901,11 +1905,12 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                         containerView.invalidate();
                         invalidate();
                     } else {
-                        containerView.setTranslationX(dp(48) * (1.0f - interpolated));
+                        containerView.setTranslationX(pageWidth * (1.0f - interpolated));
+                        containerViewBack.setTranslationX(animationProgress >= 1f ? 0 : -pageWidth * PAGE_PARALLAX * interpolated);
                     }
                 } else {
                     float clampedReverseInterpolated = MathUtils.clamp(1f - interpolated, 0, 1);
-                    containerViewBack.setAlpha(clampedReverseInterpolated);
+                    containerViewBack.setAlpha(preview ? clampedReverseInterpolated : 1f);
                     if (preview) {
                         containerViewBack.setScaleX(0.9f + 0.1f * (1.0f - interpolated));
                         containerViewBack.setScaleY(0.9f + 0.1f * (1.0f - interpolated));
@@ -1916,7 +1921,8 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                         containerView.invalidate();
                         invalidate();
                     } else {
-                        containerViewBack.setTranslationX(dp(48) * interpolated);
+                        containerViewBack.setTranslationX(pageWidth * interpolated);
+                        containerView.setTranslationX(-pageWidth * PAGE_PARALLAX * (1f - interpolated));
                     }
                 }
                 if (animationProgress < 1) {

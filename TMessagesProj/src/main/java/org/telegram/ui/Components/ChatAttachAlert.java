@@ -1185,6 +1185,7 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
             setFocusable(true);
 
             glassTabView = GlassTabView.createAttachTab(context, resourcesProvider);
+            glassTabView.setSkipDrawSelector(true);
             addView(glassTabView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         }
 
@@ -1223,6 +1224,7 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
             setFocusableInTouchMode(true);
 
             glassTabView = GlassTabView.createAttachBotTab(context, resourcesProvider);
+            glassTabView.setSkipDrawSelector(true);
             glassTabView.getBackupImageView().imageReceiver.setDelegate((imageReceiver1, set, thumb, memCache) -> {
                 Drawable drawable = imageReceiver1.getDrawable();
                 if (drawable instanceof RLottieDrawable) {
@@ -2641,10 +2643,38 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
 
             private boolean mHasFadeLeft, mHasFadeRight;
 
+            private final org.telegram.ui.Components.glass.LiquidLens lens = new org.telegram.ui.Components.glass.LiquidLens(this).setSwell(0.12f, 0.16f).setTugDp(0f);
+            private View lensChild;
+
             @Override
             protected void dispatchDraw(@NonNull Canvas canvas) {
                 mHasFadeLeft = mHasFadeRight = false;
+
+                // one capsule travels between the tabs; they no longer draw their own
+                View selected = null;
+                for (int a = 0, N = getChildCount(); a < N; a++) {
+                    final View child = getChildAt(a);
+                    if (child instanceof AttachButtonBase && ((AttachButtonBase) child).glassTabView.isTabSelected()) {
+                        selected = child;
+                        break;
+                    }
+                }
+                final boolean dark = org.telegram.ui.Components.glass.GlassTabView.isGlassDark(resourcesProvider);
+                if (selected != null) {
+                    if (lensChild == null) {
+                        lens.setVisible(true, true);
+                    }
+                    lens.setTarget(selected.getX(), selected.getY(), selected.getX() + selected.getWidth(), selected.getY() + selected.getHeight(), selected == lensChild);
+                } else if (lensChild != null) {
+                    lens.setVisible(false, true);
+                }
+                lensChild = selected;
+                lens.step();
+                lens.drawBody(canvas, dark ? 0x29FFFFFF : 0x14000000, dark);
+
                 super.dispatchDraw(canvas);
+
+                lens.drawGlass(canvas, dark);
                 hasFadeLeft.setValue(mHasFadeLeft, true);
                 hasFadeRight.setValue(mHasFadeRight, true);
             }

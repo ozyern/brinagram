@@ -266,6 +266,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
     private final Set<View> tabsWithIgnoreClick = new HashSet<>();
     private final android.graphics.RectF capsuleRect = new android.graphics.RectF();
+    private final org.telegram.ui.Components.glass.LiquidLens capsuleGlass = new org.telegram.ui.Components.glass.LiquidLens(this);
     private final android.graphics.Path capsulePath = new android.graphics.Path();
     private final Paint accentLayerPaint = new Paint();
     private final Paint washPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -697,6 +698,10 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
         // 4. specular highlight (white, lit from 45deg; 0.5 at rest -> 1 held)
         drawHighlight(canvas, capsuleRect, r, lerp(0.5f, 1f, press));
+        // held: bands of bent light and chromatic fringes, as on every other lens
+        if (press > 0.01f) {
+            capsuleGlass.drawGlass(canvas, capsuleRect, r, press, 1f, dark);
+        }
 
         if (pressed || press > 0.001f || capsuleXSpring.isRunning() || Math.abs(velocity) > 0.01f) {
             invalidate();

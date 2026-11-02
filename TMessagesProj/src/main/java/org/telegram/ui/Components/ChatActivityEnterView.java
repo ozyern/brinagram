@@ -2752,7 +2752,10 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             }
         });
-        messageEditTextContainer.addView(emojiButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.LEFT, 2, 0, 0, 0));
+        // BrinaGram: the plus takes the left side of the composer, the smile moves into the field's right end
+        messageEditTextContainer.addView(emojiButton, useBrinaComposer()
+            ? LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT)
+            : LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.LEFT, 2, 0, 0, 0));
         setEmojiButtonImage(false, false);
 
         deleteRichDraftButton = new ImageView(context);
@@ -2776,7 +2779,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 .makeRed(AlertDialog.BUTTON_POSITIVE)
                 .show();
         });
-        messageEditTextContainer.addView(deleteRichDraftButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.LEFT, 2, 0, 0, 0));
+        messageEditTextContainer.addView(deleteRichDraftButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.LEFT, useBrinaComposer() ? BRINA_PLUS_WIDTH_DP + 2 : 2, 0, 0, 0));
 
         if (isChat) {
             final int chatMode = fragment != null ? fragment.getChatMode() : -1;
@@ -2832,15 +2835,36 @@ public class ChatActivityEnterView extends FrameLayout implements
                     if (getAlpha() < 0.5f) return false;
                     return super.dispatchTouchEvent(event);
                 }
+
+                // the plus stays put while typing; only recording takes it away
+                @Override
+                public void setAlpha(float alpha) {
+                    super.setAlpha(useBrinaComposer() && !isBrinaPlusHidden() ? 1f : alpha);
+                }
+
+                @Override
+                public void setScaleX(float scaleX) {
+                    super.setScaleX(useBrinaComposer() && !isBrinaPlusHidden() ? 1f : scaleX);
+                }
+
+                @Override
+                public void setScaleY(float scaleY) {
+                    super.setScaleY(useBrinaComposer() && !isBrinaPlusHidden() ? 1f : scaleY);
+                }
+
+                @Override
+                public void setTranslationX(float translationX) {
+                    super.setTranslationX(useBrinaComposer() ? 0f : translationX);
+                }
             };
             attachButton.setScaleType(ImageView.ScaleType.CENTER);
             attachButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
             // BrinaGram: a plus on a glass disc instead of the paperclip
             attachButton.setImageResource(R.drawable.brina_input_plus);
-            attachButton.setBackground(new org.telegram.ui.Components.glass.GlassCircleDrawable(resourcesProvider).setFixedDiameter(AndroidUtilities.dp(34)));
-            messageEditTextContainer.addView(attachButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT));
+            attachButton.setBackground(new org.telegram.ui.Components.glass.GlassCircleDrawable(resourcesProvider).setFixedDiameter(AndroidUtilities.dp(useBrinaComposer() ? 40 : 34)));
+            messageEditTextContainer.addView(attachButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | (useBrinaComposer() ? Gravity.LEFT : Gravity.RIGHT)));
             attachButton.setOnClickListener(v -> {
-                if (adjustPanLayoutHelper != null && adjustPanLayoutHelper.animationInProgress() || attachLayoutPaddingAlpha == 0f) {
+                if (adjustPanLayoutHelper != null && adjustPanLayoutHelper.animationInProgress() || attachLayoutPaddingAlpha == 0f && !useBrinaComposer()) {
                     return;
                 }
                 delegate.didPressAttachButton();
@@ -3224,7 +3248,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
             @Override
             protected void dispatchDraw(@NonNull Canvas canvas) {
-                if (!audioVideoButtonContainerForbidden) {
+                if (!audioVideoButtonContainerForbidden && !useBrinaComposer()) {
                     float s = 1;
                     if (expandStickersButton != null) {
                         if (expandStickersButton.getVisibility() == View.VISIBLE) {
@@ -3441,6 +3465,15 @@ public class ChatActivityEnterView extends FrameLayout implements
                     Drawable d = getCurrentState() == State.VIDEO ? cameraOutline : micOutline;
                     d.setBounds(tmpRectF);
                     d.draw(canvas);
+                } else if (useBrinaComposer() && getCurrentState() == State.VOICE) {
+                    if (brinaWaveform == null) {
+                        brinaWaveform = getContext().getResources().getDrawable(R.drawable.brina_input_waveform).mutate();
+                    }
+                    final int size = dp(24);
+                    final int left = (getMeasuredWidth() - size) / 2, top = (getMeasuredHeight() - size) / 2;
+                    brinaWaveform.setBounds(left, top, left + size, top + size);
+                    brinaWaveform.setColorFilter(new PorterDuffColorFilter(Theme.multAlpha(getThemedColor(Theme.key_glass_defaultIcon), 0.55f), PorterDuff.Mode.SRC_IN));
+                    brinaWaveform.draw(canvas);
                 } else {
                     super.draw(canvas);
                 }
@@ -5820,7 +5853,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         messageEditText.setHintTextColor(getThemedColor(Theme.key_chat_messagePanelHint));
         messageEditText.setCursorColor(getThemedColor(Theme.key_chat_messagePanelCursor));
         messageEditText.setHandlesColor(getThemedColor(Theme.key_chat_TextSelectionCursor));
-        messageEditTextContainer.addView(messageEditText, 1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, 52, 0, isChat ? 50 : 2, 1.5f));
+        messageEditTextContainer.addView(messageEditText, 1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, useBrinaComposer() ? BRINA_PLUS_WIDTH_DP + 12 : 52, 0, isChat ? 50 : 2, 1.5f));
 
         richDraftPreview = new RichMessageLayout.PreviewView(getContext(), currentAccount, resourcesProvider);
         richDraftPreview.setAllowActions(false);
@@ -5829,7 +5862,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         richDraftPreview.setVisibility(View.GONE);
         richDraftPreview.setPadding(dp(8), dp(9), dp(8), dp(10));
         richDraftPreview.setOnClickListener(v -> openRichEditor());
-        messageEditTextContainer.addView(richDraftPreview, 2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, 52 - 8, 0, (isChat ? 50 : 2) - 8, 1.5f));
+        messageEditTextContainer.addView(richDraftPreview, 2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, (useBrinaComposer() ? BRINA_PLUS_WIDTH_DP + 12 : 52) - 8, 0, (isChat ? 50 : 2) - 8, 1.5f));
         messageEditText.setOnKeyListener(new OnKeyListener() {
 
             @Override
@@ -6576,7 +6609,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         audioVideoButtonContainer.setAlpha(audioVideoButtonContainerForbidden ? 0.5f : 1.0f);
         audioVideoButtonContainer.invalidate();
-        audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden ?
+        audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden || useBrinaComposer() ?
             getThemedColor(Theme.key_glass_defaultIcon) : Color.WHITE, PorterDuff.Mode.SRC_IN));
         audioVideoSendButton.invalidate();
         updateFieldHint(false);
@@ -8763,6 +8796,23 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
     }
 
+    /** BrinaGram composer: width of the round plus to the left of the field. */
+    public static final int BRINA_PLUS_WIDTH_DP = 50;
+    private Drawable brinaWaveform;
+
+    private boolean useBrinaComposer() {
+        return parentFragment != null && !isStories;
+    }
+
+    private boolean isBrinaPlusHidden() {
+        return recordingAudioVideo || recordedAudioPanel != null && recordedAudioPanel.getVisibility() == VISIBLE;
+    }
+
+    /** How far the field's pill must start from the left, to leave room for the round plus. */
+    public int getBrinaPillLeftInset() {
+        return useBrinaComposer() && attachButton != null && !isBrinaPlusHidden() ? dp(BRINA_PLUS_WIDTH_DP) : 0;
+    }
+
     private int lastAttachVisible;
     private void updateFieldRight(int attachVisible) {
         lastAttachVisible = attachVisible;
@@ -8791,6 +8841,10 @@ public class ChatActivityEnterView extends FrameLayout implements
         layoutParams.rightMargin = Math.max(layoutParams.rightMargin, Math.max(0, sendButton.width() - dp(DEFAULT_HEIGHT)));
         if (doneButton != null && doneButton.getVisibility() == VISIBLE) {
             layoutParams.rightMargin = Math.max(layoutParams.rightMargin, Math.max(0, doneButton.width() - dp(DEFAULT_HEIGHT)));
+        }
+        if (useBrinaComposer()) {
+            // the smile sits at the field's right end at all times
+            layoutParams.rightMargin = Math.max(layoutParams.rightMargin, dp(50));
         }
         if (oldRightMargin != layoutParams.rightMargin) {
             messageEditText.setLayoutParams(layoutParams);
@@ -10409,7 +10463,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         if (botKeyboardView != null) {
             botKeyboardView.updateColors();
         }
-        audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden ? getThemedColor(Theme.key_glass_defaultIcon) : Color.WHITE, PorterDuff.Mode.SRC_IN));
+        audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden || useBrinaComposer() ? getThemedColor(Theme.key_glass_defaultIcon) : Color.WHITE, PorterDuff.Mode.SRC_IN));
         emojiButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));
         emojiButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
         deleteRichDraftButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));

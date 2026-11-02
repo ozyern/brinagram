@@ -2118,6 +2118,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         openCommonChats = arguments.getBoolean("open_common", false);
         initialStoryAlbum = arguments.getInt("open_story_album_id", -1);
         hasMainTabs = arguments.getBoolean("hasMainTabs", false);
+        // same black backdrop and grouped cards as the Settings screen
+        if (resourceProvider == null) {
+            resourceProvider = org.telegram.ui.Components.glass.BlackGroupedResources.INSTANCE;
+        }
         if (!expandPhoto) {
             expandPhoto = arguments.getBoolean("expandPhoto", false);
             if (expandPhoto) {
@@ -4247,7 +4251,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 updateBottomButtonY();
             }
         };
-        listView.setSections();
+        listView.setSections(dp(16), dp(22), false);
         listView.applyPaddingToSections = false;
         listView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
         listView.setVerticalScrollBarEnabled(false);

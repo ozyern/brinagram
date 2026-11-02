@@ -360,7 +360,21 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     }
 
 
+    /** When set, shown instead of any wallpaper handed to {@link #setBackgroundImage}. */
+    private Drawable forcedBackground;
+
+    public void setForcedBackground(Drawable drawable) {
+        forcedBackground = drawable;
+        if (drawable != null) {
+            setBackgroundImage(drawable, false);
+        }
+    }
+
     public void setBackgroundImage(Drawable bitmap, boolean motion) {
+        if (forcedBackground != null && bitmap != forcedBackground) {
+            setBackgroundImage(forcedBackground, false);
+            return;
+        }
         if (backgroundDrawable == bitmap) {
             return;
         }

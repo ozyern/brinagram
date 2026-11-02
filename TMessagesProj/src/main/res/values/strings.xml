@@ -5828,6 +5828,7 @@
     <string name="BrinaAskBeforeCall">Ask before calling</string>
     <string name="BrinaCallConfirm">Call %1$s?</string>
     <string name="BrinaPreferIPv6">Prefer IPv6</string>
+    <string name="BrinaPlainChatBackground">Plain chat background</string>
     <string name="BrinaPreferIPv6Info">Can help when Brinagram keeps connecting on a network that blocks or slows its IPv4 servers.</string>
     <string name="AppIconAqua">Aqua</string>
     <string name="AppIconPremium">Premium</string>

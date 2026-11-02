@@ -1970,6 +1970,8 @@ public class ViewPagerFixed extends FrameLayout {
 
         private final Paint selectorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
+        private final org.telegram.ui.Components.glass.LiquidLens lens = new org.telegram.ui.Components.glass.LiquidLens(this).setSwell(0.14f, 0.3f).setTugDp(0f);
+
         @Override
         protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
             boolean result = super.drawChild(canvas, child, drawingTime);
@@ -2045,12 +2047,12 @@ public class ViewPagerFixed extends FrameLayout {
                             final float TAB_INTERNAL_PADDING = 12.5f;
                             final float add = additionalTabWidth / 2f;
                             final int y = height / 2 - dp(14);
-                            selectorDrawable.setBounds(
-                                (int) (indicatorX - dp(TAB_INTERNAL_PADDING) - add), y,
-                                (int) (indicatorX + indicatorWidth + dp(TAB_INTERNAL_PADDING) + add),
-                                y + dp(28));
-                            selectorDrawable.setAlpha(31);
-                            selectorDrawable.draw(canvas);
+                            final boolean dark = org.telegram.ui.Components.glass.GlassTabView.isGlassDark(resourcesProvider);
+                            lens.setTarget(indicatorX - dp(TAB_INTERNAL_PADDING) - add, y, indicatorX + indicatorWidth + dp(TAB_INTERNAL_PADDING) + add, y + dp(28),
+                                !(animatingIndicator || manualScrollingToPosition != -1));
+                            lens.step();
+                            lens.drawBody(canvas, Theme.multAlpha(Theme.getColor(tabLineColorKey, resourcesProvider), 31 / 255f * listView.getAlpha()), dark);
+                            lens.drawGlass(canvas, dark);
                         } else {
                             selectorDrawable.setBounds(indicatorX, (int) (height - AndroidUtilities.dpr(4) + hideProgress * AndroidUtilities.dpr(4)), indicatorX + indicatorWidth, (int) (height + hideProgress * AndroidUtilities.dpr(4)));
                             selectorDrawable.draw(canvas);

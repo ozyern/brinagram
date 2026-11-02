@@ -422,6 +422,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         final float s = bounce.getScale(.02f);
         canvas.scale(s, s, getPivotX(), getHeight() - ActionBar.getCurrentActionBarHeight() / 2f);
         super.dispatchDraw(canvas);
+        drawStackedChevron(canvas);
         canvas.restore();
     }
 
@@ -667,9 +668,11 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         final int availableWidth = width - dp((avatarImageView.getVisibility() == VISIBLE ? 54 : 0) + 16);
         final int avatarPx = isBrinaStacked() ? dp(STACKED_AVATAR_DP) : dp(avatarSizeInDp) - 2;
         avatarImageView.measure(MeasureSpec.makeMeasureSpec(avatarPx, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(avatarPx, MeasureSpec.EXACTLY));
-        titleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(24 + 8), MeasureSpec.AT_MOST));
+        // stacked: both lines must fit in the pill, between the back button and the menu
+        final int textWidth = isBrinaStacked() ? Math.min(availableWidth, AndroidUtilities.displaySize.x - dp(190)) : availableWidth;
+        titleTextView.measure(MeasureSpec.makeMeasureSpec(textWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(24 + 8), MeasureSpec.AT_MOST));
         if (subtitleTextView != null) {
-            subtitleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(20), MeasureSpec.AT_MOST));
+            subtitleTextView.measure(MeasureSpec.makeMeasureSpec(textWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(20), MeasureSpec.AT_MOST));
         } else if (animatedSubtitleTextView != null) {
             animatedSubtitleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(20), MeasureSpec.AT_MOST));
         }
@@ -756,12 +759,15 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
     private boolean glassMode;
 
-    /** BrinaGram: iOS Messages header — a small avatar above the name, which sits in its own pill. */
+    /** BrinaGram: the avatar sits above a pill holding the name, a chevron and the status. */
     public boolean brinaStacked = true;
-    public static final int STACKED_AVATAR_DP = 28;
+    public static final int STACKED_AVATAR_DP = 40;
     /** Name pill: from this offset below the bar's center line, this tall. */
-    public static final int STACKED_PILL_TOP_DP = 2;
-    public static final int STACKED_PILL_HEIGHT_DP = 24;
+    public static final int STACKED_PILL_TOP_DP = 6;
+    public static final int STACKED_PILL_HEIGHT_DP = 36;
+    private static final int STACKED_CHEVRON_DP = 12;
+    private final android.graphics.Paint chevronPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.Path chevronPath = new android.graphics.Path();
 
     public boolean isBrinaStacked() {
         return brinaStacked && glassMode && hasVisibleAvatar();
@@ -769,15 +775,35 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
     public void setGlassMode() {
         if (titleTextView != null) {
-            titleTextView.setTextSizePx(dp(brinaStacked ? 15f : 17.5f));
+            titleTextView.setTextSizePx(dp(brinaStacked ? 14f : 17.5f));
         }
         if (subtitleTextView != null) {
-            subtitleTextView.setTextSizePx(dp(13.5f));
+            subtitleTextView.setTextSizePx(dp(brinaStacked ? 11f : 13.5f));
+        }
+        if (animatedSubtitleTextView != null && brinaStacked) {
+            animatedSubtitleTextView.setTextSize(dp(11f));
         }
         glassMode = true;
     }
 
-    /** Avatar above, name centered in the pill below; status and badges follow the avatar. */
+    private void drawStackedChevron(android.graphics.Canvas canvas) {
+        if (isBrinaStacked() && titleTextView != null && titleTextView.getAlpha() > 0.01f) {
+            final float x = titleTextView.getRight() + dp(4);
+            final float cy = titleTextView.getTop() + titleTextView.getMeasuredHeight() / 2f;
+            chevronPaint.setStyle(android.graphics.Paint.Style.STROKE);
+            chevronPaint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+            chevronPaint.setStrokeJoin(android.graphics.Paint.Join.ROUND);
+            chevronPaint.setStrokeWidth(AndroidUtilities.dpf2(1.5f));
+            chevronPaint.setColor(Theme.multAlpha(titleTextView.getTextColor(), 0.5f * titleTextView.getAlpha()));
+            chevronPath.rewind();
+            chevronPath.moveTo(x, cy - dp(4));
+            chevronPath.lineTo(x + dp(3.5f), cy);
+            chevronPath.lineTo(x, cy + dp(4));
+            canvas.drawPath(chevronPath, chevronPaint);
+        }
+    }
+
+    /** Avatar above, name and status centered in the pill below; badges follow the avatar. */
     private void layoutStacked() {
         final int barTop = occupyStatusBar ? AndroidUtilities.statusBarHeight : 0;
         final int cy = barTop + ActionBar.getCurrentActionBarHeight() / 2;
@@ -785,23 +811,26 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         final float center = leftPadding - dp(3) + getVisualWidth() / 2f;
         final int aw = avatarImageView.getMeasuredWidth();
         final int ax = (int) (center - aw / 2f);
-        final int ay = cy + dp(STACKED_PILL_TOP_DP) - aw - dp(1); // fits the 56dp bar: cy-27dp .. cy+26dp
+        // the avatar overlaps the top of the pill a little
+        final int ay = cy + dp(STACKED_PILL_TOP_DP + 6) - aw;
         avatarImageView.layout(ax, ay, ax + aw, ay + aw);
 
+        final int pillTop = cy + dp(STACKED_PILL_TOP_DP);
         final int tw = titleTextView.getMeasuredWidth();
-        final int tx = (int) (center - tw / 2f);
-        final int pillCenter = cy + dp(STACKED_PILL_TOP_DP + STACKED_PILL_HEIGHT_DP / 2f);
-        final int ty = pillCenter - titleTextView.getTextHeight() / 2 - titleTextView.getPaddingTop();
+        // the name and its chevron are centered together
+        final int tx = (int) (center - (tw + dp(STACKED_CHEVRON_DP)) / 2f);
+        final int ty = pillTop + dp(11.5f) - titleTextView.getTextHeight() / 2 - titleTextView.getPaddingTop();
         titleTextView.layout(tx, ty, tx + tw, ty + titleTextView.getTextHeight() + titleTextView.getPaddingTop() + titleTextView.getPaddingBottom());
         SimpleTextView larger = this.titleTextLargerCopyView.get();
         if (larger != null) {
             larger.layout(tx, ty, tx + larger.getMeasuredWidth(), ty + larger.getTextHeight());
         }
-        // iOS shows no status line in the header
-        if (subtitleTextView != null) {
-            subtitleTextView.layout(0, 0, 0, 0);
-        } else if (animatedSubtitleTextView != null) {
-            animatedSubtitleTextView.layout(0, 0, 0, 0);
+        final View subtitle = subtitleTextView != null ? subtitleTextView : animatedSubtitleTextView;
+        if (subtitle != null) {
+            final int sw = subtitle.getMeasuredWidth();
+            final int sx = (int) (center - sw / 2f);
+            final int sy = pillTop + dp(26.5f) - subtitle.getMeasuredHeight() / 2;
+            subtitle.layout(sx, sy, sx + sw, sy + subtitle.getMeasuredHeight());
         }
         SimpleTextView largerSub = this.subtitleTextLargerCopyView.get();
         if (largerSub != null) {
@@ -1786,8 +1815,12 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             width = Math.max(width, subtitleTextView.getExactWidthIncludeDrawables());
         }
         if (isBrinaStacked()) {
-            // the pill holds only the name
-            return (int) ((titleTextView != null ? titleTextView.getExactWidthIncludeDrawables() : 0) + dp(28));
+            // the pill holds the name with its chevron, and the status under them
+            float stackedWidth = (titleTextView != null ? titleTextView.getExactWidthIncludeDrawables() : 0) + dp(STACKED_CHEVRON_DP);
+            if (subtitleTextView != null) {
+                stackedWidth = Math.max(stackedWidth, subtitleTextView.getExactWidthIncludeDrawables());
+            }
+            return (int) (stackedWidth + dp(28));
         }
         if (hasVisibleAvatar()) {
             width += dp(52 + 18);

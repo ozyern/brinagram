@@ -163,11 +163,18 @@ public class ActionBarPopupWindow extends PopupWindow {
 
             if (resId != 0) {
                 backgroundDrawable = getResources().getDrawable(resId).mutate();
+                if (resId == R.drawable.popup_fixed_alert2 || resId == R.drawable.popup_fixed_alert4) {
+                    backgroundDrawable = new org.telegram.ui.Components.glass.GlassMenuDrawable(backgroundDrawable);
+                }
                 setPadding(dp(8), dp(8), dp(8), dp(8));
             }
             if (backgroundDrawable != null) {
                 backgroundDrawable.getPadding(bgPaddings);
                 setBackgroundColor(getThemedColor(Theme.key_actionBarDefaultSubmenuBackground));
+                if (backgroundDrawable instanceof org.telegram.ui.Components.glass.GlassMenuDrawable) {
+                    // setBackgroundColor skips a color equal to its white default, as on light themes
+                    ((org.telegram.ui.Components.glass.GlassMenuDrawable) backgroundDrawable).setBaseColor(getThemedColor(Theme.key_actionBarDefaultSubmenuBackground));
+                }
             }
 
 
@@ -294,6 +301,179 @@ public class ActionBarPopupWindow extends PopupWindow {
         public void setBackgroundColor(int color) {
             if (backgroundColor != color && backgroundDrawable != null) {
                 backgroundDrawable.setColorFilter(new PorterDuffColorFilter(backgroundColor = color, PorterDuff.Mode.MULTIPLY));
+                if (backgroundDrawable instanceof org.telegram.ui.Components.glass.GlassMenuDrawable) {
+                    ((org.telegram.ui.Components.glass.GlassMenuDrawable) backgroundDrawable).setBaseColor(color);
+                }
+            }
+        }
+
+        // ---- pressed row: one pill that travels between rows and follows the finger ----
+
+        private org.telegram.ui.Components.glass.LiquidLens rowPill;
+        private final Rect rowRect = new Rect();
+        private View touchRow;
+        private View downRow;
+        private View pillRow;
+        private boolean slidingOverRows;
+        private boolean fingerDown;
+        private float fingerX, fingerY;
+        private float downTouchX, downTouchY;
+        private float leanX, leanY;
+
+        private org.telegram.ui.Components.glass.LiquidLens rowPill() {
+            if (rowPill == null) {
+                rowPill = new org.telegram.ui.Components.glass.LiquidLens(this)
+                    .setSwell(0.02f, 0.1f)
+                    .setTugDp(0f);
+                rowPill.setVisible(false, false);
+            }
+            return rowPill;
+        }
+
+        /** The row's rect in this layout's coordinates, or false if it is not inside this layout. */
+        private boolean getRowRect(View row, Rect out) {
+            float x = 0, y = 0;
+            View view = row;
+            while (view != this) {
+                x += view.getLeft() + view.getTranslationX();
+                y += view.getTop() + view.getTranslationY();
+                final android.view.ViewParent parent = view.getParent();
+                if (!(parent instanceof View)) {
+                    return false;
+                }
+                view = (View) parent;
+                if (view != this) {
+                    x -= view.getScrollX();
+                    y -= view.getScrollY();
+                }
+            }
+            out.set((int) x, (int) y, (int) x + row.getWidth(), (int) y + row.getHeight());
+            return true;
+        }
+
+        private View findRowAt(float x, float y) {
+            for (int a = 0, N = linearLayout.getChildCount(); a < N; a++) {
+                final View child = linearLayout.getChildAt(a);
+                if (child instanceof ActionBarMenuSubItem && child.getVisibility() == VISIBLE && child.isEnabled()
+                        && getRowRect(child, rowRect) && rowRect.contains((int) x, (int) y)) {
+                    return child;
+                }
+            }
+            return null;
+        }
+
+        private boolean canSlideOverRows() {
+            return swipeBackLayout == null && (scrollView == null || linearLayout.getMeasuredHeight() <= scrollView.getMeasuredHeight());
+        }
+
+        @Override
+        public boolean dispatchTouchEvent(MotionEvent ev) {
+            fingerX = ev.getX();
+            fingerY = ev.getY();
+            switch (ev.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    fingerDown = true;
+                    slidingOverRows = false;
+                    downTouchX = fingerX;
+                    downTouchY = fingerY;
+                    downRow = touchRow = findRowAt(fingerX, fingerY);
+                    invalidate();
+                    break;
+                case MotionEvent.ACTION_MOVE: {
+                    final View row = findRowAt(fingerX, fingerY);
+                    final int slop = android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop();
+                    if (!slidingOverRows && canSlideOverRows() && row != downRow
+                            && Math.hypot(fingerX - downTouchX, fingerY - downTouchY) > slop) {
+                        slidingOverRows = true;
+                        final MotionEvent cancel = MotionEvent.obtain(ev);
+                        cancel.setAction(MotionEvent.ACTION_CANCEL);
+                        super.dispatchTouchEvent(cancel);
+                        cancel.recycle();
+                    }
+                    if (row != touchRow) {
+                        touchRow = row;
+                        if (slidingOverRows && row != null) {
+                            try {
+                                performHapticFeedback(android.view.HapticFeedbackConstants.TEXT_HANDLE_MOVE);
+                            } catch (Exception ignored) {
+                            }
+                        }
+                    }
+                    invalidate();
+                    if (slidingOverRows) {
+                        return true;
+                    }
+                    break;
+                }
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL: {
+                    final boolean wasSliding = slidingOverRows;
+                    final View row = touchRow;
+                    fingerDown = false;
+                    slidingOverRows = false;
+                    touchRow = downRow = null;
+                    invalidate();
+                    if (wasSliding) {
+                        if (ev.getActionMasked() == MotionEvent.ACTION_UP && row != null) {
+                            row.performClick();
+                        }
+                        return true;
+                    }
+                    break;
+                }
+            }
+            return super.dispatchTouchEvent(ev);
+        }
+
+        /** Updates the pill and the panel's lean towards the finger; call before drawing content. */
+        private void updatePressFeedback() {
+            View row = fingerDown ? touchRow : null;
+            if (!fingerDown) {
+                // a row can also be highlighted by the long-press drag on the menu's button
+                for (int a = 0, N = linearLayout.getChildCount(); a < N; a++) {
+                    final View child = linearLayout.getChildAt(a);
+                    if (child instanceof ActionBarMenuSubItem && child.isSelected() && child.getVisibility() == VISIBLE) {
+                        row = child;
+                        break;
+                    }
+                }
+            }
+            if (row != null || rowPill != null) {
+                final org.telegram.ui.Components.glass.LiquidLens pill = rowPill();
+                if (row != pillRow) {
+                    pill.setVisible(row != null, true);
+                    pillRow = row;
+                }
+                pill.setPressed(row != null);
+                if (row != null && getRowRect(row, rowRect)) {
+                    pill.setTarget(rowRect.left + dp(2), rowRect.top + dp(1), rowRect.right - dp(2), rowRect.bottom - dp(1), false);
+                }
+                pill.step();
+            }
+
+            float targetLeanX = 0f, targetLeanY = 0f;
+            if (fingerDown && getWidth() > 0 && getHeight() > 0) {
+                targetLeanX = Math.max(-1f, Math.min(1f, (fingerX - getWidth() / 2f) / (getWidth() / 2f))) * dp(2);
+                targetLeanY = Math.max(-1f, Math.min(1f, (fingerY - getHeight() / 2f) / (getHeight() / 2f))) * dp(3);
+            }
+            leanX += (targetLeanX - leanX) * 0.25f;
+            leanY += (targetLeanY - leanY) * 0.25f;
+            if (Math.abs(targetLeanX - leanX) > 0.2f || Math.abs(targetLeanY - leanY) > 0.2f) {
+                invalidate();
+            } else {
+                leanX = targetLeanX;
+                leanY = targetLeanY;
+            }
+        }
+
+        private void drawRowPill(Canvas canvas) {
+            if (rowPill == null || !rowPill.isVisible()) {
+                return;
+            }
+            final boolean dark = androidx.core.graphics.ColorUtils.calculateLuminance(backgroundColor | 0xFF000000) < 0.5f;
+            rowPill.drawBody(canvas, dark ? 0x30FFFFFF : 0x14000000, dark);
+            if (dark) {
+                rowPill.drawGlass(canvas, true);
             }
         }
 
@@ -464,6 +644,9 @@ public class ActionBarPopupWindow extends PopupWindow {
             if (swipeBackGravityBottom) {
                 setTranslationY(getMeasuredHeight() * (1f - backScaleY));
             }
+            updatePressFeedback();
+            final int leanSave = canvas.save();
+            canvas.translate(leanX, leanY);
             if (backgroundDrawable != null) {
                 int start = gapStartY - (scrollView == null ? 0 : scrollView.getScrollY());
                 int end = gapEndY - (scrollView == null ? 0 : scrollView.getScrollY());
@@ -576,11 +759,14 @@ public class ActionBarPopupWindow extends PopupWindow {
                 canvas.saveLayerAlpha((float) AndroidUtilities.rectTmp2.left, (float) AndroidUtilities.rectTmp2.top, AndroidUtilities.rectTmp2.right, AndroidUtilities.rectTmp2.bottom, (int) (255 * reactionsEnterProgress), Canvas.ALL_SAVE_FLAG);
                 float scale = 0.5f + reactionsEnterProgress * 0.5f;
                 canvas.scale(scale, scale, AndroidUtilities.rectTmp2.right, AndroidUtilities.rectTmp2.top);
+                drawRowPill(canvas);
                 super.dispatchDraw(canvas);
                 canvas.restore();
             } else {
+                drawRowPill(canvas);
                 super.dispatchDraw(canvas);
             }
+            canvas.restoreToCount(leanSave);
         }
 
         public Drawable getBackgroundDrawable() {
@@ -840,85 +1026,61 @@ public class ActionBarPopupWindow extends PopupWindow {
         }
     }
 
-    public static AnimatorSet startAnimation(ActionBarPopupWindowLayout content) {
+    /** The panel grows from the corner nearest its anchor: from about 0.6, with a small overshoot. */
+    private static final float MENU_ENTER_SCALE = 0.62f;
+
+    private static void updateMenuPivot(ActionBarPopupWindowLayout content) {
+        final int width = content.getMeasuredWidth();
+        final int[] location = new int[2];
+        content.getLocationOnScreen(location);
+        final boolean anchoredRight = location[0] + width / 2 >= AndroidUtilities.displaySize.x / 2;
+        content.setPivotX(anchoredRight ? width : 0);
+        content.setPivotY(content.shownFromBottom ? content.getMeasuredHeight() : 0);
+    }
+
+    private static AnimatorSet createMenuEnterAnimation(ActionBarPopupWindowLayout content) {
         content.startAnimationPending = true;
+        content.updateAnimation = false;
         content.setTranslationY(0);
-        content.setAlpha(1.0f);
-        content.setPivotX(content.getMeasuredWidth());
-        content.setPivotY(0);
+        updateMenuPivot(content);
         final int count = content.getItemsCount();
         content.positions.clear();
-        int visibleCount = 0;
         for (int a = 0; a < count; a++) {
-            View child = content.getItemAt(a);
+            final View child = content.getItemAt(a);
             if (child instanceof GapView) {
                 continue;
             }
-            child.setAlpha(0.0f);
-            if (child.getVisibility() != View.VISIBLE) {
-                continue;
-            }
-            content.positions.put(child, visibleCount);
-            visibleCount++;
+            child.setTranslationY(0);
+            child.setAlpha(child.isEnabled() ? 1f : 0.5f);
         }
-        if (content.shownFromBottom) {
-            content.lastStartedChild = count - 1;
-        } else {
-            content.lastStartedChild = 0;
-        }
-        float finalScaleY = 1f;
         if (content.getSwipeBack() != null) {
             content.getSwipeBack().invalidateTransforms();
-            finalScaleY = content.backScaleY;
+        } else {
+            content.setBackScaleY(1f);
         }
-        AnimatorSet windowAnimatorSet = new AnimatorSet();
-        ValueAnimator childtranslations = ValueAnimator.ofFloat(0, 1);
-        childtranslations.addUpdateListener(anm -> {
-            final int count2 = content.getItemsCount();
-            final float t = (float) anm.getAnimatedValue();
-            for (int a = 0; a < count2; a++) {
-                View child = content.getItemAt(a);
-                if (child instanceof GapView) {
-                    continue;
-                }
-                float at = AndroidUtilities.cascade(t, content.shownFromBottom ? count2 - 1 - a : a, count2, 4);
-                child.setTranslationY((1f - at) * dp(-6));
-                child.setAlpha(at * (child.isEnabled() ? 1f : 0.5f));
-            }
-        });
-        content.updateAnimation = false;
-        content.clipChildren = true;
-        // BrinaGram: the menu grows out of its anchor with a slight overshoot
-        final ObjectAnimator growX = ObjectAnimator.ofFloat(content, View.SCALE_X, 0.82f, 1f);
-        final ObjectAnimator growY = ObjectAnimator.ofFloat(content, View.SCALE_Y, 0.82f, 1f);
+        content.setBackAlpha(255);
+
+        final AnimatorSet set = new AnimatorSet();
+        final ObjectAnimator growX = ObjectAnimator.ofFloat(content, View.SCALE_X, MENU_ENTER_SCALE, 1f);
+        final ObjectAnimator growY = ObjectAnimator.ofFloat(content, View.SCALE_Y, MENU_ENTER_SCALE, 1f);
         final ObjectAnimator fade = ObjectAnimator.ofFloat(content, View.ALPHA, 0f, 1f);
-        final android.view.animation.OvershootInterpolator overshoot = new android.view.animation.OvershootInterpolator(1.4f);
-        growX.setInterpolator(overshoot);
-        growY.setInterpolator(overshoot);
+        growX.setInterpolator(org.telegram.ui.Components.glass.LiquidLens.SPRING);
+        growY.setInterpolator(org.telegram.ui.Components.glass.LiquidLens.SPRING);
         growX.setDuration(340);
         growY.setDuration(340);
-        fade.setDuration(140);
-        windowAnimatorSet.playTogether(
-                ObjectAnimator.ofFloat(content, "backScaleY", 0.6f, finalScaleY),
-                ObjectAnimator.ofInt(content, "backAlpha", 0, 255),
-                childtranslations,
-                growX, growY, fade
-        );
-        windowAnimatorSet.setDuration(150 + 16 * visibleCount);
-        childtranslations.setDuration(150 + 16 * visibleCount);
+        fade.setDuration(90);
+        // the layout may not have had its final position yet when the animation was set up
+        growX.addUpdateListener(a -> updateMenuPivot(content));
+        set.playTogether(growX, growY, fade);
+        return set;
+    }
+
+    public static AnimatorSet startAnimation(ActionBarPopupWindowLayout content) {
+        final AnimatorSet windowAnimatorSet = createMenuEnterAnimation(content);
         windowAnimatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 content.startAnimationPending = false;
-                int count = content.getItemsCount();
-                for (int a = 0; a < count; a++) {
-                    View child = content.getItemAt(a);
-                    if (child instanceof GapView) {
-                        continue;
-                    }
-                    child.setTranslationY(0);
-                    child.setAlpha(child.isEnabled() ? 1f : 0.5f);
-                }
             }
         });
         windowAnimatorSet.start();
@@ -935,46 +1097,14 @@ public class ActionBarPopupWindow extends PopupWindow {
             ActionBarPopupWindowLayout content = null;
             if (viewGroup instanceof ActionBarPopupWindowLayout) {
                 content = (ActionBarPopupWindowLayout) viewGroup;
-                content.startAnimationPending = true;
             } else {
                 for (int i = 0; i < viewGroup.getChildCount(); i++) {
                     if (viewGroup.getChildAt(i) instanceof ActionBarPopupWindowLayout) {
                         content = (ActionBarPopupWindowLayout) viewGroup.getChildAt(i);
-                        content.startAnimationPending = true;
                     }
                 }
             }
-            content.setTranslationY(0);
-            content.setAlpha(1.0f);
-            content.setPivotX(content.getMeasuredWidth());
-            content.setPivotY(0);
-            int count = content.getItemsCount();
-            content.positions.clear();
-            int visibleCount = 0;
-            for (int a = 0; a < count; a++) {
-                View child = content.getItemAt(a);
-                child.setAlpha(0.0f);
-                if (child.getVisibility() != View.VISIBLE) {
-                    continue;
-                }
-                content.positions.put(child, visibleCount);
-                visibleCount++;
-            }
-            if (content.shownFromBottom) {
-                content.lastStartedChild = count - 1;
-            } else {
-                content.lastStartedChild = 0;
-            }
-            float finalScaleY = 1f;
-            if (content.getSwipeBack() != null) {
-                content.getSwipeBack().invalidateTransforms();
-                finalScaleY = content.backScaleY;
-            }
-            windowAnimatorSet = new AnimatorSet();
-            windowAnimatorSet.playTogether(
-                    ObjectAnimator.ofFloat(content, "backScaleY", 0.0f, finalScaleY),
-                    ObjectAnimator.ofInt(content, "backAlpha", 0, 255));
-            windowAnimatorSet.setDuration(150 + 16 * visibleCount);
+            windowAnimatorSet = createMenuEnterAnimation(content);
             windowAnimatorSet.addListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
@@ -1047,13 +1177,17 @@ public class ActionBarPopupWindow extends PopupWindow {
         if (animationEnabled && animated) {
             isClosingAnimated = true;
             ViewGroup viewGroup = (ViewGroup) getContentView();
-            ActionBarPopupWindowLayout content = null;
+            ActionBarPopupWindowLayout content = viewGroup instanceof ActionBarPopupWindowLayout ? (ActionBarPopupWindowLayout) viewGroup : null;
             for (int i = 0; i < viewGroup.getChildCount(); i++) {
                 if (viewGroup.getChildAt(i) instanceof ActionBarPopupWindowLayout) {
                     content = (ActionBarPopupWindowLayout) viewGroup.getChildAt(i);
                 }
             }
             if (content != null) {
+                // shrink back towards the corner it grew from
+                updateMenuPivot(content);
+                viewGroup.setPivotX(viewGroup == content ? content.getPivotX() : content.getX() + content.getPivotX());
+                viewGroup.setPivotY(viewGroup == content ? content.getPivotY() : content.getY() + content.getPivotY());
                 if (content.itemAnimators != null && !content.itemAnimators.isEmpty()) {
                     for (int a = 0, N = content.itemAnimators.size(); a < N; a++) {
                         AnimatorSet animatorSet = content.itemAnimators.get(a);
@@ -1067,17 +1201,12 @@ public class ActionBarPopupWindow extends PopupWindow {
             if (outEmptyTime > 0) {
                 windowAnimatorSet.playTogether(ValueAnimator.ofFloat(0, 1f));
                 windowAnimatorSet.setDuration(outEmptyTime);
-            } else if (scaleOut) {
-                windowAnimatorSet.playTogether(
-                        ObjectAnimator.ofFloat(viewGroup, View.SCALE_Y, 0.8f),
-                        ObjectAnimator.ofFloat(viewGroup, View.SCALE_X, 0.8f),
-                        ObjectAnimator.ofFloat(viewGroup, View.ALPHA, 0.0f));
-                windowAnimatorSet.setDuration(dismissAnimationDuration);
             } else {
                 windowAnimatorSet.playTogether(
-                        ObjectAnimator.ofFloat(viewGroup, View.TRANSLATION_Y, dp((content != null && content.shownFromBottom) ? 5 : -5)),
+                        ObjectAnimator.ofFloat(viewGroup, View.SCALE_Y, MENU_ENTER_SCALE),
+                        ObjectAnimator.ofFloat(viewGroup, View.SCALE_X, MENU_ENTER_SCALE),
                         ObjectAnimator.ofFloat(viewGroup, View.ALPHA, 0.0f));
-                windowAnimatorSet.setDuration(dismissAnimationDuration);
+                windowAnimatorSet.setDuration(Math.min(dismissAnimationDuration, 120));
             }
 
             windowAnimatorSet.addListener(new AnimatorListenerAdapter() {
@@ -1091,6 +1220,10 @@ public class ActionBarPopupWindow extends PopupWindow {
                     } catch (Exception ignore) {
 
                     }
+                    // some callers show the same window again
+                    viewGroup.setScaleX(1f);
+                    viewGroup.setScaleY(1f);
+                    viewGroup.setAlpha(1f);
                     unregisterListener();
                     if (pauseNotifications) {
                         notificationsLocker.unlock();

@@ -2302,8 +2302,8 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 right = rightDefault;
             }
 
-            // BrinaGram: iOS Messages header — the pill holds only the name, under the avatar
-            final boolean stacked = chatAvatarContainer != null && !glassModeIsForum && chatAvatarContainer.isBrinaStacked()
+            // BrinaGram: the pill holds the name and status, under the avatar
+            final boolean stacked = chatAvatarContainer != null && chatAvatarContainer.isBrinaStacked()
                 && searchFactor <= 0f && actionModeFactor <= 0f;
             if (stacked != glassPillStacked) {
                 glassPillStacked = stacked;
