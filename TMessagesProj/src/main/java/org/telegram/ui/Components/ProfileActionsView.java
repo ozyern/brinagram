@@ -120,6 +120,8 @@ public class ProfileActionsView extends View {
 
     private int color = 0;
     private boolean hasColorById;
+    private final Paint circleFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint circleRimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private RadialGradient radialGradient;
     private final Matrix matrix = new Matrix();
 
@@ -228,10 +230,28 @@ public class ProfileActionsView extends View {
         invalidate();
     }
 
+    /** Other people's pages show round glass buttons, icon only; labels stay for accessibility. */
+    private boolean isCircles() {
+        return mode != MODE_MY_PROFILE && Theme.isCurrentThemeDark();
+    }
+
+    private float getBetweenPadding() {
+        return isCircles() ? dp(12) : xpadding / 2f;
+    }
+
+    private float getFirstItemLeft() {
+        if (!isCircles()) {
+            return xpadding;
+        }
+        final float between = getBetweenPadding();
+        return (getMeasuredWidth() - getItemWidth() * activeCount - between * (activeCount - 1)) / 2f;
+    }
+
     private float getItemWidth() {
         int w = getMeasuredWidth();
-        float betweenPadding = xpadding / 2f;
-        return (w - betweenPadding * (activeCount - 1) - xpadding * 2f) / activeCount;
+        float betweenPadding = getBetweenPadding();
+        final float width = (w - betweenPadding * (activeCount - 1) - xpadding * 2f) / activeCount;
+        return isCircles() ? Math.min(targetHeight, width) : width;
     }
 
     @Override
@@ -250,9 +270,9 @@ public class ProfileActionsView extends View {
             return;
         }
 
-        final float betweenPadding = xpadding / 2f;
+        final float betweenPadding = getBetweenPadding();
         final float width = getItemWidth();
-        float left = xpadding;
+        float left = getFirstItemLeft();
         float r = getRoundRadius();
 
         if (renderNode != null) {
@@ -304,6 +324,17 @@ public class ProfileActionsView extends View {
                         action.rect.width() / 2.0f * (1.0f - action.getScale()),
                         action.rect.height() / 2.0f * (1.0f - action.getScale())
                     );
+                    if (isCircles()) {
+                        final float circleRadius = Math.min(AndroidUtilities.rectTmp.width(), AndroidUtilities.rectTmp.height()) / 2f;
+                        final float circleAlpha = action.getAlpha() * alphaFraction1;
+                        circleFillPaint.setColor(Theme.multAlpha(0xFFFFFFFF, 0.14f * circleAlpha));
+                        canvas.drawRoundRect(AndroidUtilities.rectTmp, circleRadius, circleRadius, circleFillPaint);
+                        circleRimPaint.setStyle(Paint.Style.STROKE);
+                        circleRimPaint.setStrokeWidth(dpf2(1f));
+                        circleRimPaint.setColor(Theme.multAlpha(0xFFFFFFFF, 0.2f * circleAlpha));
+                        canvas.drawRoundRect(AndroidUtilities.rectTmp, circleRadius, circleRadius, circleRimPaint);
+                        continue;
+                    }
                     int wasAlpha = paint.getAlpha();
                     int newAlpha = (int) (action.getAlpha() * alphaFraction1 * wasAlpha);
                     paint.setAlpha((int) (newAlpha * (radialGradient != null ? 0.1f : 1f)));
@@ -392,7 +423,7 @@ public class ProfileActionsView extends View {
 
         action.text.setMaxWidth(action.rect.width() - dp(2));
         action.textScale = action.text.getLineCount() >= 3 ? 0.75f : action.text.getLineCount() >= 2 ? 0.85f : 1.0f;
-        final float drawableTop = Math.max(0, (targetHeight - action.text.getHeight() * action.textScale) / 3f + dpf2(1.33f));
+        final float drawableTop = isCircles() ? cy - drawableR : Math.max(0, (targetHeight - action.text.getHeight() * action.textScale) / 3f + dpf2(1.33f));
         action.setBounds(
             (int) (cx - drawableR),
             (int) (drawableTop),
@@ -414,6 +445,9 @@ public class ProfileActionsView extends View {
         if (isButtonColorLight && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             useFilledWhiteIcon = 0f;
         }
+        if (isCircles()) {
+            useFilledWhiteIcon = 1f;
+        }
 
         final int textColor = ColorUtils.blendARGB(Color.BLACK, Color.WHITE, useFilledWhiteIcon);
         if (lastColorFilter == null || lastColorFilterColor != textColor) {
@@ -432,10 +466,12 @@ public class ProfileActionsView extends View {
         updateBounds(action);
 
         final float textY = action.bounds.bottom + action.bounds.top - action.text.getHeight() * action.textScale / 2.0f - dp(4.66f);
-        canvas.save();
-        canvas.scale(action.textScale, action.textScale, cx, textY + action.text.getHeight() * action.textScale / 2.0f);
-        action.text.draw(canvas, cx - action.text.getWidth() / 2f, textY, textColor, alpha);
-        canvas.restore();
+        if (!isCircles()) {
+            canvas.save();
+            canvas.scale(action.textScale, action.textScale, cx, textY + action.text.getHeight() * action.textScale / 2.0f);
+            action.text.draw(canvas, cx - action.text.getWidth() / 2f, textY, textColor, alpha);
+            canvas.restore();
+        }
 
         if (action.iconTranslationY != 0) {
             canvas.translate(0, action.iconTranslationY);
@@ -939,9 +975,9 @@ public class ProfileActionsView extends View {
         float callAnimateFromY = callView.getTop();
         if (isOpen) {
             int c = actions.size();
-            final float betweenPadding = xpadding / 2f;
+            final float betweenPadding = getBetweenPadding();
             final float width = getItemWidth();
-            float left = xpadding;
+            float left = getFirstItemLeft();
 
             for (int i = 0; i < c; i++) {
                 Action action = actions.get(i);

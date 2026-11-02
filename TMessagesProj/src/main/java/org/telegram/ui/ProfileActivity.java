@@ -54,6 +54,7 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.LinearGradient;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
@@ -894,6 +895,22 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     public static class AvatarImageView extends BackupImageView implements SizeNotifierFrameLayout.IViewWithInvalidateCallback {
 
+        private final Paint glassRimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        @Override
+        public void draw(Canvas canvas) {
+            super.draw(canvas);
+            // a thin lit edge around the round avatar; gone once it opens into the full photo
+            if (Theme.isCurrentThemeDark() && progressToExpand < 1f && getWidth() > 0) {
+                final float stroke = AndroidUtilities.dpf2(1f);
+                glassRimPaint.setStyle(Paint.Style.STROKE);
+                glassRimPaint.setStrokeWidth(stroke);
+                glassRimPaint.setAlpha((int) (0xFF * (1f - progressToExpand)));
+                glassRimPaint.setShader(new LinearGradient(0, 0, 0, getHeight(), 0x8CFFFFFF, 0x26FFFFFF, Shader.TileMode.CLAMP));
+                canvas.drawCircle(getWidth() / 2f, getHeight() / 2f, Math.min(getWidth(), getHeight()) / 2f - stroke / 2f, glassRimPaint);
+            }
+        }
+
         private boolean isPulledDown;
         private float blurSizeFraction;
         private float avatarScale;
@@ -1374,6 +1391,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (progressToGradient > 0) {
                     backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
+                }
+                updateBrinaTint();
+                if (hasBrinaBackdrop() && brinaBackdropPaint.getShader() != null) {
+                    brinaBackdropPaint.setAlpha((int) (0xFF * (1f - currentExpandAnimatorValue)));
+                    canvas.drawRect(0, 0, getMeasuredWidth(), y1, brinaBackdropPaint);
                 }
                 if (hasEmoji) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
@@ -2118,9 +2140,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         openCommonChats = arguments.getBoolean("open_common", false);
         initialStoryAlbum = arguments.getInt("open_story_album_id", -1);
         hasMainTabs = arguments.getBoolean("hasMainTabs", false);
-        // same black backdrop and grouped cards as the Settings screen
+        // backdrop and cards tinted from the photo
         if (resourceProvider == null) {
-            resourceProvider = org.telegram.ui.Components.glass.BlackGroupedResources.INSTANCE;
+            resourceProvider = new org.telegram.ui.Components.glass.TintedProfileResources();
         }
         if (!expandPhoto) {
             expandPhoto = arguments.getBoolean("expandPhoto", false);
@@ -6058,10 +6080,62 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private int getHeaderOnlyExtraHeight() {
+        // the larger avatar pushes the name down by the difference in size
+        final int extra = BRINA_AVATAR_DP - 96;
         if (getActionsExtraHeight() == 0) {
-            return dp(168f);
+            return dp(168f + extra);
         }
-        return dp(152f);
+        return dp(152f + extra);
+    }
+
+    /** Resting avatar size on the profile page. */
+    private static final int BRINA_AVATAR_DP = 148;
+    private static final int BRINA_GLASS_AVATAR = 0x26FFFFFF;
+
+    private Object brinaTintSource;
+    private boolean brinaTintApplied;
+    private int brinaAvatarColor;
+    private int brinaBackdropHeight;
+    private final Paint brinaBackdropPaint = new Paint();
+
+    private boolean hasBrinaBackdrop() {
+        return resourceProvider instanceof org.telegram.ui.Components.glass.TintedProfileResources && Theme.isCurrentThemeDark();
+    }
+
+    /** Follows the photo: recomputed only when the image on screen changes. */
+    private void updateBrinaTint() {
+        if (!hasBrinaBackdrop() || avatarImage == null || listView == null) {
+            return;
+        }
+        final ImageReceiver receiver = avatarImage.getImageReceiver();
+        final Object source = receiver.getDrawable();
+        final boolean hasImage = source != null && !(source instanceof AvatarDrawable) && receiver.hasImageLoaded();
+        if (!hasImage && avatarDrawable != null && avatarDrawable.getColor() != BRINA_GLASS_AVATAR) {
+            // no photo: the initial sits on a pane of glass, and its usual color tints the page
+            brinaAvatarColor = avatarDrawable.getColor();
+            avatarDrawable.setColor(BRINA_GLASS_AVATAR);
+            avatarImage.invalidate();
+            brinaTintApplied = false;
+        }
+        final Object tintSource = hasImage ? source : avatarDrawable;
+        final int height = listView.getMeasuredHeight();
+        if (brinaTintApplied && tintSource == brinaTintSource && height == brinaBackdropHeight) {
+            return;
+        }
+        int color = hasImage ? getAverageColor(receiver) : brinaAvatarColor;
+        if (color == 0) {
+            color = brinaAvatarColor;
+        }
+        brinaTintSource = tintSource;
+        brinaBackdropHeight = height;
+        brinaTintApplied = true;
+        final org.telegram.ui.Components.glass.TintedProfileResources resources = (org.telegram.ui.Components.glass.TintedProfileResources) resourceProvider;
+        resources.setTint(color);
+        listView.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+            new int[] {resources.getBackdropTop(), resources.getBackdropBottom()}));
+        brinaBackdropPaint.setShader(new LinearGradient(0, 0, 0, Math.max(1, height),
+            resources.getBackdropTop(), resources.getBackdropBottom(), Shader.TileMode.CLAMP));
+        listView.invalidate();
     }
 
     private int getActionsExtraHeight() {
@@ -8469,7 +8543,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             float h = openAnimationInProgress ? initialAnimationExtraHeight : extraHeight;
             if (h > headerExtraHeight || isPulledDown) {
                 expandProgress = Math.max(0f, Math.min(1f, (h - headerExtraHeight) / (listView.getMeasuredWidth() - newTop - getHeaderOnlyExtraHeight())));
-                avatarScale = lerp(96 / 42f, 138 / 42f, Math.min(1f, expandProgress * 3f)) / 100f * 42f;
+                avatarScale = lerp(BRINA_AVATAR_DP / 42f, (BRINA_AVATAR_DP + 42) / 42f, Math.min(1f, expandProgress * 3f)) / 100f * 42f;
                 pullUpProgress = 0.0f;
 
                 if (storyView != null) {
@@ -8733,14 +8807,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 updateCollectibleHint();
             } else if (h <= headerExtraHeight) {
                 if (openAnimationInProgress) {
-                    avatarScale = lerp(42, 96, diff) / 100f;
+                    avatarScale = lerp(42, BRINA_AVATAR_DP, diff) / 100f;
                     pullUpProgress = 0.0f;
                 } else {
                     float intoSize = 24f;
                     if (avatarGooey != null && avatarGooey.notchInfo != null && avatarGooey.notchInfo.isLikelyCircle) {
                         intoSize = 0.5f * avatarGooey.notchInfo.bounds.width() / AndroidUtilities.density;
                     }
-                    avatarScale = lerp(intoSize, 96, diff) / 100f;
+                    avatarScale = lerp(intoSize, BRINA_AVATAR_DP, diff) / 100f;
                     pullUpProgress = 1.0f - diff;
                 }
 
@@ -13202,6 +13276,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         }
                     };
                     textDetailCell.setContentDescriptionValueFirst(true);
+                    if (viewType != VIEW_TYPE_TEXT_DETAIL_MULTILINE) {
+                        textDetailCell.setLabelAbove(); // a multi-line label would run into the text below it
+                    }
                     view = textDetailCell;
                     break;
                 case VIEW_TYPE_LINKED_COMMUNITY:
@@ -13686,7 +13763,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         detailCell.setTextAndValue(text, value, true);
                         detailCell.setContentDescriptionValueFirst(true);
                     }
-                    if (containsGift) {
+                    if (position == phoneRow) {
+                        Drawable drawable = ContextCompat.getDrawable(detailCell.getContext(), R.drawable.msg_calls).mutate();
+                        drawable.setColorFilter(new PorterDuffColorFilter(Theme.multAlpha(getThemedColor(Theme.key_windowBackgroundWhiteBlackText), 0.7f), PorterDuff.Mode.SRC_IN));
+                        detailCell.setImage(drawable);
+                        detailCell.setImageClickListener(null);
+                    } else if (containsGift) {
                         Drawable drawable = ContextCompat.getDrawable(detailCell.getContext(), R.drawable.msg_input_gift);
                         drawable.setColorFilter(new PorterDuffColorFilter(dontApplyPeerColor(getThemedColor(Theme.key_switch2TrackChecked), false), PorterDuff.Mode.MULTIPLY));
                         if (UserObject.areGiftsDisabled(userInfo)) {

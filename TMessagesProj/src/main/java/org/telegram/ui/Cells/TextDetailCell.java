@@ -209,6 +209,20 @@ public class TextDetailCell extends FrameLayout {
         setWillNotDraw(!needDivider);
     }
 
+    /** Shows the small label above the main text instead of below it. */
+    public void setLabelAbove() {
+        final FrameLayout.LayoutParams valueParams = (FrameLayout.LayoutParams) valueTextView.getLayoutParams();
+        final FrameLayout.LayoutParams textParams = (FrameLayout.LayoutParams) textView.getLayoutParams();
+        final int side = LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT;
+        valueParams.gravity = Gravity.TOP | side;
+        valueParams.topMargin = dp(9);
+        valueParams.bottomMargin = 0;
+        textParams.gravity = Gravity.TOP | side;
+        textParams.topMargin = dp(27);
+        textParams.bottomMargin = dp(6);
+        valueTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+    }
+
     public void setImage(Drawable drawable) {
         setImage(drawable, null);
     }
