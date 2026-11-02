@@ -66,6 +66,7 @@ public class CustomPhoneKeyboardView extends ViewGroup {
 
     public CustomPhoneKeyboardView(Context context) {
         super(context);
+        setClipChildren(false); // a pressed key swells slightly past its slot
 
         for (int i = 0; i < 11; i++) {
             if (i == 9) continue;
@@ -161,7 +162,7 @@ public class CustomPhoneKeyboardView extends ViewGroup {
         for (int a = 0; a < views.length; a++) {
             final View v = views[a];
             if (v == null) continue;
-            ScaleStateListAnimator.apply(v, 0.06f, 1.4f);
+            ScaleStateListAnimator.apply(v, -0.07f, 1.4f); // glass swells under the finger
             v.setBackground(getButtonDrawable(a));
         }
     }
@@ -249,17 +250,15 @@ public class CustomPhoneKeyboardView extends ViewGroup {
         }
     }
 
-    /** BrinaGram: every key is a soft glass capsule; the delete key has no plate. */
+    /** BrinaGram: every key is a pane of liquid glass; the delete key has no plate. */
     private static Drawable getButtonDrawable(int index) {
         if (index == 11) {
             return Theme.createSimpleSelectorRoundRectDrawable(dp(28), 0, ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), 24));
         }
         final boolean dark = ColorUtils.calculateLuminance(Theme.getColor(Theme.key_windowBackgroundWhite)) < 0.5f;
-        final int defaultColor = dark ? 0xFF2C2C2E : 0xFFEDEDF0;
-        final int pressedColor = dark ? 0xFF48484A : 0xFFD1D1D6;
         return new android.graphics.drawable.InsetDrawable(
-            Theme.createSimpleSelectorRoundRectDrawable(dp(28), defaultColor, pressedColor, pressedColor),
-            dp(3), dp(3), dp(3), dp(3));
+            new org.telegram.ui.Components.glass.GlassPillDrawable().setDark(dark),
+            dp(2), dp(2), dp(2), dp(2));
     }
 
     public void updateColors() {
@@ -288,8 +287,8 @@ public class CustomPhoneKeyboardView extends ViewGroup {
             mNumber = number;
             mSymbols = symbols;
 
-            numberTextPaint.setTextSize(dp(25));
-            numberTextPaint.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL));
+            numberTextPaint.setTextSize(dp(26));
+            numberTextPaint.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
             symbolsTextPaint.setTextSize(dp(9.5f));
             symbolsTextPaint.setTypeface(org.telegram.messenger.AndroidUtilities.bold());
             symbolsTextPaint.setLetterSpacing(0.18f);

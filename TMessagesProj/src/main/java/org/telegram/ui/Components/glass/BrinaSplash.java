@@ -89,7 +89,9 @@ public final class BrinaSplash {
 
         SplashView(Context context) {
             super(context);
-            medallion = ContextCompat.getDrawable(context, R.drawable.brina_medallion);
+            final Drawable medallionSource = ContextCompat.getDrawable(context, R.drawable.brina_medallion);
+            // its own copy: the fade-out below must not reach other screens showing the medallion
+            medallion = medallionSource != null ? medallionSource.mutate() : null;
             background.setColor(ContextCompat.getColor(context, R.color.brina_splash_background));
             starPaint.setColor(0xFFFFE9C2);
             lite = !LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND);

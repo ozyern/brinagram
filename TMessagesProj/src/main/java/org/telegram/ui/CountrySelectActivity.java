@@ -110,7 +110,7 @@ public class CountrySelectActivity extends BaseFragment {
 
     @Override
     public boolean isLightStatusBar() {
-        int color = Theme.getColor(Theme.key_windowBackgroundWhite, null, true);
+        int color = Theme.getColor(Theme.key_windowBackgroundGray, null, true);
         return ColorUtils.calculateLuminance(color) > 0.7f;
     }
 
@@ -120,7 +120,8 @@ public class CountrySelectActivity extends BaseFragment {
         actionBar.setAllowOverlayTitle(false);
         actionBar.setTitle(LocaleController.getString(R.string.ChooseCountry));
 
-        actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
+        actionBar.setCastShadows(false);
         actionBar.setItemsColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), false);
         actionBar.setItemsBackgroundColor(Theme.getColor(Theme.key_actionBarWhiteSelector), false);
         actionBar.setTitleColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -134,45 +135,6 @@ public class CountrySelectActivity extends BaseFragment {
             }
         });
 
-        ActionBarMenu menu = actionBar.createMenu();
-        ActionBarMenuItem item = menu.addItem(0, R.drawable.outline_header_search).setIsSearchField(true).setActionBarMenuItemSearchListener(new ActionBarMenuItem.ActionBarMenuItemSearchListener() {
-            @Override
-            public void onSearchExpand() {
-                searching = true;
-            }
-
-            @Override
-            public void onSearchCollapse() {
-                searchListViewAdapter.search(null);
-                searching = false;
-                searchWas = false;
-                listView.setAdapter(listViewAdapter);
-                listView.setFastScrollVisible(true);
-            }
-
-            @Override
-            public void onTextChanged(EditText editText) {
-                String text = editText.getText().toString();
-                if (TextUtils.isEmpty(text)) {
-                    searchListViewAdapter.search(null);
-                    searchWas = false;
-                    listView.setAdapter(listViewAdapter);
-                    listView.setFastScrollVisible(true);
-                    return;
-                }
-
-                searchListViewAdapter.search(text);
-                if (text.length() != 0) {
-                    searchWas = true;
-                }
-            }
-        });
-        item.setSearchFieldHint(LocaleController.getString(R.string.Search));
-
-        actionBar.setSearchTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText), true);
-        actionBar.setSearchTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), false);
-        actionBar.setSearchCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-
         searching = false;
         searchWas = false;
 
@@ -181,6 +143,7 @@ public class CountrySelectActivity extends BaseFragment {
 
         fragmentView = new FrameLayout(context);
         FrameLayout frameLayout = (FrameLayout) fragmentView;
+        frameLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
 
         emptyView = new EmptyTextProgressView(context);
         emptyView.showTextView();
@@ -197,7 +160,12 @@ public class CountrySelectActivity extends BaseFragment {
         listView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
         listView.setAdapter(listViewAdapter);
         listView.setVerticalScrollbarPosition(LocaleController.isRTL ? RecyclerListView.SCROLLBAR_POSITION_LEFT : RecyclerListView.SCROLLBAR_POSITION_RIGHT);
+        listView.setSections(AndroidUtilities.dp(16), AndroidUtilities.dp(14), false);
+        listView.setClipToPadding(false);
+        listView.setPadding(0, 0, 0, AndroidUtilities.dp(SEARCH_BAR_SPACE_DP));
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        org.telegram.ui.Components.glass.LargeTitleHeader.attach(actionBar, listView, frameLayout, LocaleController.getString(R.string.ChooseCountry), null);
+        createSearchBar(context, frameLayout);
 
         listView.setOnItemClickListener((view, position) -> {
             Country country;
@@ -230,6 +198,83 @@ public class CountrySelectActivity extends BaseFragment {
         });
 
         return fragmentView;
+    }
+
+    private static final int SEARCH_BAR_SPACE_DP = 74;
+
+    /** The search field floats in a glass pill at the bottom, within reach, and rides above the keyboard. */
+    private void createSearchBar(Context context, FrameLayout parent) {
+        final FrameLayout searchBar = new FrameLayout(context);
+        searchBar.setBackground(new org.telegram.ui.Components.glass.GlassPillDrawable().setDark(Theme.isCurrentThemeDark()));
+
+        final int hintColor = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText);
+        final android.widget.ImageView searchIcon = new android.widget.ImageView(context);
+        searchIcon.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+        searchIcon.setImageResource(R.drawable.outline_header_search);
+        searchIcon.setColorFilter(new android.graphics.PorterDuffColorFilter(hintColor, android.graphics.PorterDuff.Mode.SRC_IN));
+        searchBar.addView(searchIcon, LayoutHelper.createFrame(24, 24, android.view.Gravity.LEFT | android.view.Gravity.CENTER_VERTICAL, 12, 0, 0, 0));
+
+        final EditText field = new EditText(context);
+        field.setBackground(null);
+        field.setPadding(0, 0, 0, 0);
+        field.setSingleLine(true);
+        field.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16);
+        field.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        field.setHintTextColor(hintColor);
+        field.setHint(LocaleController.getString(R.string.Search));
+        field.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+        searchBar.addView(field, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, android.view.Gravity.CENTER_VERTICAL, 44, 0, 44, 0));
+
+        final android.widget.ImageView clearButton = new android.widget.ImageView(context);
+        clearButton.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+        clearButton.setImageResource(R.drawable.msg_close);
+        clearButton.setColorFilter(new android.graphics.PorterDuffColorFilter(hintColor, android.graphics.PorterDuff.Mode.SRC_IN));
+        clearButton.setVisibility(View.GONE);
+        clearButton.setOnClickListener(v -> field.setText(""));
+        searchBar.addView(clearButton, LayoutHelper.createFrame(40, 40, android.view.Gravity.RIGHT | android.view.Gravity.CENTER_VERTICAL, 0, 0, 4, 0));
+
+        field.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                final String text = s.toString();
+                clearButton.setVisibility(text.isEmpty() ? View.GONE : View.VISIBLE);
+                if (TextUtils.isEmpty(text)) {
+                    searchListViewAdapter.search(null);
+                    searching = false;
+                    searchWas = false;
+                    listView.setAdapter(listViewAdapter);
+                    listView.setFastScrollVisible(true);
+                } else {
+                    searching = true;
+                    searchListViewAdapter.search(text);
+                    searchWas = true;
+                }
+            }
+        });
+        parent.addView(searchBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 46, android.view.Gravity.BOTTOM, 16, 0, 16, 14));
+
+        // above the keyboard and navigation bar, minus whatever the window already resized away
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(parent, (v, insets) -> {
+            final int inset = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime() | androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+            v.post(() -> {
+                final int[] location = new int[2];
+                v.getLocationOnScreen(location);
+                final int resizedAway = Math.max(0, v.getRootView().getHeight() - (location[1] + v.getHeight()));
+                final int bottom = Math.max(0, inset - resizedAway);
+                searchBar.setTranslationY(-bottom);
+                listView.setPadding(listView.getPaddingLeft(), listView.getPaddingTop(), listView.getPaddingRight(), AndroidUtilities.dp(SEARCH_BAR_SPACE_DP) + bottom);
+            });
+            return insets;
+        });
+        androidx.core.view.ViewCompat.requestApplyInsets(parent);
     }
 
     @Override
@@ -339,16 +384,16 @@ public class CountrySelectActivity extends BaseFragment {
                 return null;
             }
             ArrayList<Country> arr = countries.get(sortedCountries.get(section));
-            if (position < 0 || position >= arr.size()) {
+            // row 0 of each section is its letter
+            if (position < 1 || position > arr.size()) {
                 return null;
             }
-            return arr.get(position);
+            return arr.get(position - 1);
         }
 
         @Override
         public boolean isEnabled(RecyclerView.ViewHolder holder, int section, int row) {
-            ArrayList<Country> arr = countries.get(sortedCountries.get(section));
-            return row < arr.size();
+            return row > 0;
         }
 
         @Override
@@ -358,11 +403,7 @@ public class CountrySelectActivity extends BaseFragment {
 
         @Override
         public int getCountForSection(int section) {
-            int count = countries.get(sortedCountries.get(section)).size();
-            if (section != sortedCountries.size() - 1) {
-                count++;
-            }
-            return count;
+            return countries.get(sortedCountries.get(section)).size() + 1;
         }
 
         @Override
@@ -379,8 +420,14 @@ public class CountrySelectActivity extends BaseFragment {
                     break;
                 case TYPE_DIVIDER:
                 default:
-                    view = new DividerCell(mContext);
-                    view.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(8), AndroidUtilities.dp(24), AndroidUtilities.dp(8));
+                    final android.widget.TextView letter = new android.widget.TextView(mContext);
+                    letter.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13);
+                    letter.setTypeface(AndroidUtilities.bold());
+                    letter.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+                    letter.setPadding(AndroidUtilities.dp(32), AndroidUtilities.dp(16), AndroidUtilities.dp(32), AndroidUtilities.dp(6));
+                    letter.setTag(RecyclerListView.TAG_NOT_SECTION);
+                    letter.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                    view = letter;
                     break;
             }
             return new RecyclerListView.Holder(view);
@@ -390,16 +437,17 @@ public class CountrySelectActivity extends BaseFragment {
         public void onBindViewHolder(int section, int position, RecyclerView.ViewHolder holder) {
             if (holder.getItemViewType() == TYPE_COUNTRY) {
                 ArrayList<Country> arr = countries.get(sortedCountries.get(section));
-                Country c = arr.get(position);
+                Country c = arr.get(position - 1);
                 TextSettingsCell settingsCell = (TextSettingsCell) holder.itemView;
-                settingsCell.setTextAndValue(Emoji.replaceEmoji(getCountryNameWithFlag(c), settingsCell.getTextView().getPaint().getFontMetricsInt(), false), needPhoneCode ? "+" + c.code : null, false);
+                settingsCell.setTextAndValue(Emoji.replaceEmoji(getCountryNameWithFlag(c), settingsCell.getTextView().getPaint().getFontMetricsInt(), false), needPhoneCode ? "+" + c.code : null, position < arr.size());
+            } else {
+                ((android.widget.TextView) holder.itemView).setText(sortedCountries.get(section));
             }
         }
 
         @Override
         public int getItemViewType(int section, int position) {
-            ArrayList<Country> arr = countries.get(sortedCountries.get(section));
-            return position < arr.size() ? TYPE_COUNTRY : TYPE_DIVIDER;
+            return position > 0 ? TYPE_COUNTRY : TYPE_DIVIDER;
         }
 
         @Override
@@ -535,7 +583,7 @@ public class CountrySelectActivity extends BaseFragment {
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
             Country c = searchResult.get(position);
             TextSettingsCell settingsCell = (TextSettingsCell) holder.itemView;
-            settingsCell.setTextAndValue(Emoji.replaceEmoji(getCountryNameWithFlag(c), settingsCell.getTextView().getPaint().getFontMetricsInt(), false), needPhoneCode ? "+" + c.code : null, false);
+            settingsCell.setTextAndValue(Emoji.replaceEmoji(getCountryNameWithFlag(c), settingsCell.getTextView().getPaint().getFontMetricsInt(), false), needPhoneCode ? "+" + c.code : null, position < getItemCount() - 1);
         }
 
         @Override

@@ -87,6 +87,35 @@ public class OutlineTextContainerView extends FrameLayout {
         setPadding(0, AndroidUtilities.dp(6), 0, 0);
     }
 
+    /** Rows of a grouped card: a filled panel with rounded outer corners, without outline or label. */
+    public static final int GROUPED_NONE = 0, GROUPED_TOP = 1, GROUPED_BOTTOM = 2;
+    private int groupedPosition = GROUPED_NONE;
+    private final Paint groupedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.Path groupedPath = new android.graphics.Path();
+
+    public void setGroupedPosition(int position) {
+        groupedPosition = position;
+        setPadding(0, 0, 0, 0);
+        invalidate();
+    }
+
+    private void drawGrouped(Canvas canvas) {
+        final boolean dark = Theme.isCurrentThemeDark();
+        final float r = AndroidUtilities.dp(16);
+        final float top = groupedPosition == GROUPED_TOP ? r : 0;
+        final float bottom = groupedPosition == GROUPED_BOTTOM ? r : 0;
+        rect.set(0, 0, getWidth(), getHeight());
+        groupedPath.rewind();
+        groupedPath.addRoundRect(rect, new float[] {top, top, top, top, bottom, bottom, bottom, bottom}, android.graphics.Path.Direction.CW);
+        // a wrong entry flushes the row red, in place of the outline
+        groupedPaint.setColor(ColorUtils.blendARGB(dark ? 0x1FFFFFFF : 0x0F000000, 0x40FF453A, errorProgress));
+        canvas.drawPath(groupedPath, groupedPaint);
+        if (groupedPosition == GROUPED_TOP) {
+            groupedPaint.setColor(dark ? 0x26FFFFFF : 0x1F000000);
+            canvas.drawRect(AndroidUtilities.dp(16), getHeight() - Math.max(1, AndroidUtilities.dp(0.33f)), getWidth(), getHeight(), groupedPaint);
+        }
+    }
+
     public void setForceUseCenter2(boolean forceUseCenter2) {
         this.forceUseCenter2 = forceUseCenter2;
     }
@@ -192,6 +221,11 @@ public class OutlineTextContainerView extends FrameLayout {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+
+        if (groupedPosition != GROUPED_NONE) {
+            drawGrouped(canvas);
+            return;
+        }
 
         float textOffset = textPaint.getTextSize() / 2f - AndroidUtilities.dp(1.75f);
         float topY = getPaddingTop() + textOffset;

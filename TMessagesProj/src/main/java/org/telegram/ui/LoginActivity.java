@@ -1967,6 +1967,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private LinkSpanDrawable.LinksTextView subtitleView;
         private View codeDividerView;
         private ImageView chevronRight;
+        private TextView countryLabelView;
         private CheckBoxCell syncContactsBox;
         private CheckBoxCell testBackendCheckBox;
 
@@ -2059,14 +2060,14 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             countryButton = new TextViewSwitcher(context);
             countryButton.setFactory(() -> {
                 TextView tv = new TextView(context);
-                tv.setPadding(dp(16), dp(12), dp(16), dp(12));
+                tv.setPadding(dp(8), dp(12), dp(4), dp(12));
                 tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
                 tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                 tv.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
                 tv.setMaxLines(1);
                 tv.setSingleLine(true);
                 tv.setEllipsize(TextUtils.TruncateAt.END);
-                tv.setGravity((LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_HORIZONTAL);
+                tv.setGravity(LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT); // the value sits at the row's far end
                 return tv;
             });
 
@@ -2075,13 +2076,19 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             countryButton.setInAnimation(anim);
 
             chevronRight = new ImageView(context);
-            chevronRight.setImageResource(R.drawable.msg_inputarrow);
+            chevronRight.setImageResource(R.drawable.msg_arrowright);
 
             LinearLayout countryButtonLinearLayout = new LinearLayout(context);
             countryButtonLinearLayout.setOrientation(HORIZONTAL);
             countryButtonLinearLayout.setGravity(Gravity.CENTER_VERTICAL);
+            countryLabelView = new TextView(context);
+            countryLabelView.setText(getString(R.string.Country));
+            countryLabelView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+            countryLabelView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            countryLabelView.setPadding(dp(16), 0, 0, 0);
+            countryButtonLinearLayout.addView(countryLabelView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
             countryButtonLinearLayout.addView(countryButton, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 0, 0, 0, 0));
-            countryButtonLinearLayout.addView(chevronRight, LayoutHelper.createLinearRelatively(24, 24, 0, 0, 0, 14, 0));
+            countryButtonLinearLayout.addView(chevronRight, LayoutHelper.createLinearRelatively(24, 24, 0, 0, 0, 10, 0));
 
             countryOutlineView = new OutlineTextContainerView(context);
             countryOutlineView.setText(getString(R.string.Country));
@@ -2090,7 +2097,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             countryOutlineView.setFocusable(true);
             countryOutlineView.setContentDescription(getString(R.string.Country));
             countryOutlineView.setOnFocusChangeListener((v, hasFocus) -> countryOutlineView.animateSelection(hasFocus ? 1 : 0));
-            addView(countryOutlineView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 58, 16, 24, 16, 14));
+            countryOutlineView.setGroupedPosition(OutlineTextContainerView.GROUPED_TOP);
+            addView(countryOutlineView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 50, 16, 24, 16, 0));
             countryOutlineView.setOnClickListener(view -> {
                 CountrySelectActivity fragment = new CountrySelectActivity(true, countriesArray);
                 fragment.setCountrySelectActivityDelegate((country) -> {
@@ -2108,7 +2116,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             phoneOutlineView = new OutlineTextContainerView(context);
             phoneOutlineView.addView(linearLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 16, 8, 16, 8));
             phoneOutlineView.setText(getString(R.string.PhoneNumber));
-            addView(phoneOutlineView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 58, 16, 8, 16, 8));
+            phoneOutlineView.setGroupedPosition(OutlineTextContainerView.GROUPED_BOTTOM);
+            addView(phoneOutlineView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 50, 16, 0, 16, 8));
 
             plusTextView = new TextView(context);
             plusTextView.setText("+");
@@ -2685,6 +2694,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             chevronRight.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1));
 
             plusTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            countryLabelView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
 
             codeField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
             codeField.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated));

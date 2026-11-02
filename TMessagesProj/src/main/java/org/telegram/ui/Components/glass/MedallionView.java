@@ -35,7 +35,11 @@ public class MedallionView extends View {
 
     public MedallionView(Context context) {
         super(context);
-        medallion = ContextCompat.getDrawable(context, R.drawable.brina_medallion);
+        final Drawable source = ContextCompat.getDrawable(context, R.drawable.brina_medallion);
+        medallion = source != null ? source.mutate() : null;
+        if (medallion != null) {
+            medallion.setAlpha(255);
+        }
         glint.setCallback(this);
     }
 
@@ -47,10 +51,11 @@ public class MedallionView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        final float glowRadius = Math.min(w, h) * 0.62f;
+        // fades out before the view's edge, so the glow is never cut off
+        final float glowRadius = Math.min(w, h) * 0.5f;
         glowPaint.setShader(new RadialGradient(0, 0, glowRadius,
             new int[] {0x66E8C690, 0x22E8C690, 0x00E8C690},
-            new float[] {0.55f, 0.78f, 1f}, Shader.TileMode.CLAMP));
+            new float[] {0.6f, 0.82f, 1f}, Shader.TileMode.CLAMP));
     }
 
     @Override
@@ -74,14 +79,14 @@ public class MedallionView extends View {
         final boolean animate = LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND);
         final long t = SystemClock.elapsedRealtime() - startTime;
 
-        final float size = Math.min(getWidth(), getHeight()) * 0.9f;
+        final float size = Math.min(getWidth(), getHeight()) * 0.8f;
         final float cx = getWidth() / 2f;
         final float floatY = animate ? (float) Math.sin(t * 2 * Math.PI / FLOAT_PERIOD) * AndroidUtilities.dpf2(4) : 0;
         final float cy = getHeight() / 2f + floatY;
 
         canvas.save();
         canvas.translate(cx, cy);
-        canvas.drawCircle(0, 0, size * 0.62f, glowPaint);
+        canvas.drawCircle(0, 0, Math.min(getWidth(), getHeight()) * 0.5f, glowPaint);
         canvas.restore();
 
         final int l = (int) (cx - size / 2), tp = (int) (cy - size / 2);

@@ -103,7 +103,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
     private ViewPager viewPager;
     private BottomPagesView bottomPages;
     private TextView switchLanguageTextView;
-    private GradientDrawable startMessagingButtonBackground;
+    private org.telegram.ui.Components.glass.GlassPillDrawable startMessagingButtonBackground;
     private TextView startMessagingButton;
     private FrameLayout frameLayout2;
     private org.telegram.ui.Components.glass.AuroraView auroraView;
@@ -258,7 +258,10 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
         // BrinaGram: the brand medallion replaces the Telegram sphere on the first page and
         // crossfades into the animated GL icons as the user swipes.
         medallionView = new org.telegram.ui.Components.glass.MedallionView(context);
-        frameLayout2.addView(medallionView, LayoutHelper.createFrame(ICON_WIDTH_DP, ICON_HEIGHT_DP, Gravity.CENTER));
+        // square and larger than the icon area, so the logo has room and its glow is never cut off
+        frameLayout2.setClipChildren(false);
+        frameContainerView.setClipChildren(false);
+        frameLayout2.addView(medallionView, LayoutHelper.createFrame(ICON_WIDTH_DP, ICON_WIDTH_DP, Gravity.CENTER));
         textureView.setAlpha(0f);
 
         // Warm drifting glow; above the opaque GL view (so it tints it evenly) but below text and buttons.
@@ -353,7 +356,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
             }
         });
 
-        startMessagingButtonBackground = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, null);
+        startMessagingButtonBackground = new org.telegram.ui.Components.glass.GlassPillDrawable();
         startMessagingButton = new TextView(context) {
             private final CellFlickerDrawable cellFlickerDrawable = new CellFlickerDrawable(); {
                 cellFlickerDrawable.drawFrame = false;
@@ -364,7 +367,6 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
             protected void onSizeChanged(int w, int h, int oldw, int oldh) {
                 super.onSizeChanged(w, h, oldw, oldh);
                 startMessagingButtonBackground.setBounds(0, 0, w, h);
-                startMessagingButtonBackground.setCornerRadius(Math.min(w, h) / 2f);
                 cellFlickerDrawable.setParentWidth(w);
             }
 
@@ -983,12 +985,12 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
     private void updateColors(boolean fromTheme) {
         // BrinaGram: champagne-gold pill matching the medallion
-        startMessagingButtonBackground.setColors(new int[]{0xFFD8B07A, 0xFFB07D4A});
+        startMessagingButtonBackground.setDark(Theme.isCurrentThemeDark());
         auroraView.setDark(Theme.isCurrentThemeDark());
         logoDrawable.setColorFilter(Theme.multAlpha(getThemedColor(Theme.key_actionBarDefaultTitle), 0.9f), PorterDuff.Mode.MULTIPLY);
         fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         switchLanguageTextView.setTextColor(Theme.isCurrentThemeDark() ? 0xFFD8B07A : 0xFFA8763F);
-        startMessagingButton.setTextColor(0xFFFFFFFF);
+        startMessagingButton.setTextColor(Theme.isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF1C1C1E);
         startMessagingButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(26), Color.TRANSPARENT, 0x22FFFFFF));
         darkThemeDrawable.setColorFilter(new PorterDuffColorFilter(Theme.isCurrentThemeDark() ? 0xFFD8B07A : 0xFFA8763F, PorterDuff.Mode.SRC_IN));
         bottomPages.invalidate();

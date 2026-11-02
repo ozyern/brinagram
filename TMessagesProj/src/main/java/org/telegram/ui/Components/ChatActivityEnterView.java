@@ -15235,7 +15235,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             final boolean medallionMode = isNewDesignSendButton && !isInScheduleMode() && starsPrice <= 0
                 && Math.abs(backgroundRect.width() - backgroundRect.height()) < dp(1);
             if (medallionMode && brinaMedallion == null) {
-                brinaMedallion = androidx.core.content.ContextCompat.getDrawable(getContext(), R.drawable.brina_medallion);
+                brinaMedallion = androidx.core.content.ContextCompat.getDrawable(getContext(), R.drawable.brina_medallion).mutate();
             }
             if (isNewDesignSendButton && !(medallionMode && brinaMedallion != null)) {
                 canvas.drawRoundRect(backgroundRect, dp(RADIUS), dp(RADIUS), backgroundPaint);

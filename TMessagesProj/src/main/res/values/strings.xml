@@ -4209,17 +4209,17 @@
     <string name="ViewMessage">Open Message</string>
     <!--Intro view-->
     <string name="Page1Title">Brinagram</string>
-    <string name="Page2Title">Fast</string>
-    <string name="Page3Title">Free</string>
-    <string name="Page4Title">Secure</string>
-    <string name="Page5Title">Powerful</string>
-    <string name="Page6Title">Cloud-Based</string>
-    <string name="Page1Message">The world\'s **fastest** messaging app.\nIt is **free** and **secure**.</string>
-    <string name="Page2Message">**Brinagram** delivers messages faster than\nany other application.</string>
-    <string name="Page3Message">**Brinagram** provides free unlimited cloud storage for chats and media.</string>
-    <string name="Page4Message">**Brinagram** keeps your messages safe\nfrom hacker attacks.</string>
-    <string name="Page5Message">**Brinagram** has no limits on\nthe size of your media and chats.</string>
-    <string name="Page6Message">**Brinagram** lets you access your messages\nfrom multiple devices.</string>
+    <string name="Page2Title">Espresso Fast</string>
+    <string name="Page3Title">On the House</string>
+    <string name="Page4Title">Just Between Us</string>
+    <string name="Page5Title">Main Stage</string>
+    <string name="Page6Title">On Tour</string>
+    <string name="Page1Message">Your messages, **short n\' sweet**.\nMade with love for Sabrina Carpenter.</string>
+    <string name="Page2Message">Quick as a shot of **espresso**.\nYour messages land before the foam settles.</string>
+    <string name="Page3Message">Free cloud storage for your chats and media.\n**No cover charge**, ever.</string>
+    <string name="Page4Message">Your messages stay yours,\nsafe from the **nonsense**.</string>
+    <string name="Page5Message">No limits on your media and chats.\nGo big, it\'s your **encore**.</string>
+    <string name="Page6Message">Pick up your chats on **every device**,\nwherever the tour goes.</string>
     <string name="StartMessaging">Start Messaging</string>
     <!-- VoIP -->
     <string name="AccountSettings">Account Settings</string>
