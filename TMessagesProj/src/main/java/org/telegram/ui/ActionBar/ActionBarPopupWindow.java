@@ -322,8 +322,12 @@ public class ActionBarPopupWindow extends PopupWindow {
 
         private org.telegram.ui.Components.glass.LiquidLens rowPill() {
             if (rowPill == null) {
+                // a solid pill, quick between rows: it neither clears nor stretches like the tab lenses
                 rowPill = new org.telegram.ui.Components.glass.LiquidLens(this)
-                    .setSwell(0.02f, 0.1f)
+                    .setSwell(0.01f, 0.04f)
+                    .setStretch(0f)
+                    .setClearing(0f)
+                    .setStiffness(900f)
                     .setTugDp(0f);
                 rowPill.setVisible(false, false);
             }
@@ -471,10 +475,7 @@ public class ActionBarPopupWindow extends PopupWindow {
                 return;
             }
             final boolean dark = androidx.core.graphics.ColorUtils.calculateLuminance(backgroundColor | 0xFF000000) < 0.5f;
-            rowPill.drawBody(canvas, dark ? 0x30FFFFFF : 0x14000000, dark);
-            if (dark) {
-                rowPill.drawGlass(canvas, true);
-            }
+            rowPill.drawBody(canvas, dark ? 0x40FFFFFF : 0x14000000, dark);
         }
 
         @Keep
@@ -1035,16 +1036,17 @@ public class ActionBarPopupWindow extends PopupWindow {
         }
     }
 
-    /** The panel grows from the corner nearest its anchor: from about 0.6, with a small overshoot. */
-    private static final float MENU_ENTER_SCALE = 0.62f;
-
+    /** The panel grows from a point near its anchor, a little inside the corner that faces it. */
     private static void updateMenuPivot(ActionBarPopupWindowLayout content) {
         final int width = content.getMeasuredWidth();
+        final int height = content.getMeasuredHeight();
         final int[] location = new int[2];
         content.getLocationOnScreen(location);
         final boolean anchoredRight = location[0] + width / 2 >= AndroidUtilities.displaySize.x / 2;
-        content.setPivotX(anchoredRight ? width : 0);
-        content.setPivotY(content.shownFromBottom ? content.getMeasuredHeight() : 0);
+        final float alongWidth = org.telegram.ui.Components.glass.BrinaMotion.PIVOT_ALONG_WIDTH;
+        final float alongHeight = org.telegram.ui.Components.glass.BrinaMotion.PIVOT_ALONG_HEIGHT;
+        content.setPivotX(width * (anchoredRight ? 1f - alongWidth : alongWidth));
+        content.setPivotY(height * (content.shownFromBottom ? 1f - alongHeight : alongHeight));
     }
 
     private static AnimatorSet createMenuEnterAnimation(ActionBarPopupWindowLayout content) {
@@ -1070,17 +1072,10 @@ public class ActionBarPopupWindow extends PopupWindow {
         content.setBackAlpha(255);
 
         final AnimatorSet set = new AnimatorSet();
-        final ObjectAnimator growX = ObjectAnimator.ofFloat(content, View.SCALE_X, MENU_ENTER_SCALE, 1f);
-        final ObjectAnimator growY = ObjectAnimator.ofFloat(content, View.SCALE_Y, MENU_ENTER_SCALE, 1f);
-        final ObjectAnimator fade = ObjectAnimator.ofFloat(content, View.ALPHA, 0f, 1f);
-        growX.setInterpolator(org.telegram.ui.Components.glass.LiquidLens.SPRING);
-        growY.setInterpolator(org.telegram.ui.Components.glass.LiquidLens.SPRING);
-        growX.setDuration(340);
-        growY.setDuration(340);
-        fade.setDuration(90);
+        final ValueAnimator grow = org.telegram.ui.Components.glass.BrinaMotion.popupEnter(content);
         // the layout may not have had its final position yet when the animation was set up
-        growX.addUpdateListener(a -> updateMenuPivot(content));
-        set.playTogether(growX, growY, fade);
+        grow.addUpdateListener(a -> updateMenuPivot(content));
+        set.play(grow);
         return set;
     }
 
@@ -1211,11 +1206,7 @@ public class ActionBarPopupWindow extends PopupWindow {
                 windowAnimatorSet.playTogether(ValueAnimator.ofFloat(0, 1f));
                 windowAnimatorSet.setDuration(outEmptyTime);
             } else {
-                windowAnimatorSet.playTogether(
-                        ObjectAnimator.ofFloat(viewGroup, View.SCALE_Y, MENU_ENTER_SCALE),
-                        ObjectAnimator.ofFloat(viewGroup, View.SCALE_X, MENU_ENTER_SCALE),
-                        ObjectAnimator.ofFloat(viewGroup, View.ALPHA, 0.0f));
-                windowAnimatorSet.setDuration(Math.min(dismissAnimationDuration, 120));
+                windowAnimatorSet.play(org.telegram.ui.Components.glass.BrinaMotion.popupExit(viewGroup, dismissAnimationDuration));
             }
 
             windowAnimatorSet.addListener(new AnimatorListenerAdapter() {

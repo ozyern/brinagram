@@ -3287,7 +3287,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 return super.dispatchTouchEvent(ev);
             }
         };
-        fragmentSearchField.setPadding(dp(4), dp(4), dp(4), dp(4));
+        // 36dp tall in its 48dp row
+        fragmentSearchField.setPadding(dp(4), dp(6), dp(4), dp(6));
+        fragmentSearchField.setCancelButtonEnabled(true);
         fragmentSearchField.setPivotX(0);
         fragmentSearchField.setPivotY(0);
         if (initialDialogsType == DIALOGS_TYPE_DEFAULT) {

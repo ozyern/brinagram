@@ -428,6 +428,16 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
     @Override
     protected boolean drawChild(@NonNull Canvas canvas, View child, long drawingTime) {
+        if (child == avatarImageView && !drawingClippedAvatar && isBrinaStacked() && !stackedPillPath.isEmpty()) {
+            // the pill is painted by the bar, behind us: cut it out of the avatar so it reads as on top
+            canvas.save();
+            org.telegram.ui.Components.glass.LiquidGlassStyle.clipOut(canvas, stackedPillPath);
+            drawingClippedAvatar = true;
+            final boolean result = drawChild(canvas, child, drawingTime);
+            drawingClippedAvatar = false;
+            canvas.restore();
+            return result;
+        }
         if (child == avatarImageView) {
             final boolean hasTimer = timeItem != null && timeItem.getVisibility() == VISIBLE;
             final boolean hasCommunity = communityItem != null && communityItem.getVisibility() == VISIBLE;
@@ -759,14 +769,64 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
     private boolean glassMode;
 
-    /** BrinaGram: the avatar sits above a pill holding the name, a chevron and the status. */
+    /**
+     * BrinaGram: a large avatar, with a small pill holding the name and a chevron over its lower
+     * edge. The pill shows the status instead of the name only while someone is typing.
+     */
     public boolean brinaStacked = true;
-    public static final int STACKED_AVATAR_DP = 40;
+    public static final int STACKED_AVATAR_DP = 48;
     /** Name pill: from this offset below the bar's center line, this tall. */
-    public static final int STACKED_PILL_TOP_DP = 6;
-    public static final int STACKED_PILL_HEIGHT_DP = 36;
+    public static final int STACKED_PILL_TOP_DP = 13;
+    public static final int STACKED_PILL_HEIGHT_DP = 28;
+    /** How far the pill rides up over the avatar. */
+    private static final int STACKED_OVERLAP_DP = 7;
     private static final int STACKED_CHEVRON_DP = 12;
+    private static final int STACKED_PILL_PADDING_DP = 14;
     private float stackedChevronX;
+    private final android.graphics.RectF stackedPillRect = new android.graphics.RectF();
+    private final android.graphics.Path stackedPillPath = new android.graphics.Path();
+    private boolean drawingClippedAvatar;
+    private float stackedStatus;
+    private boolean stackedStatusTarget;
+    private boolean stackedStatusApplied;
+    private android.animation.ValueAnimator stackedStatusAnimator;
+
+    /** Crossfades the pill between the name and the status: the status shows only while typing. */
+    private void updateStackedStatus() {
+        final boolean target = isBrinaStacked() && currentTypingDrawable != null;
+        if (target != stackedStatusTarget) {
+            stackedStatusTarget = target;
+            if (stackedStatusAnimator != null) {
+                stackedStatusAnimator.cancel();
+            }
+            stackedStatusAnimator = android.animation.ValueAnimator.ofFloat(stackedStatus, target ? 1f : 0f);
+            stackedStatusAnimator.setDuration(200);
+            stackedStatusAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT);
+            stackedStatusAnimator.addUpdateListener(a -> {
+                stackedStatus = (float) a.getAnimatedValue();
+                applyStackedStatus();
+            });
+            stackedStatusAnimator.start();
+            requestLayout();
+        }
+        applyStackedStatus();
+    }
+
+    private void applyStackedStatus() {
+        final View subtitle = subtitleTextView != null ? subtitleTextView : animatedSubtitleTextView;
+        final boolean stacked = isBrinaStacked();
+        if (!stacked && !stackedStatusApplied) {
+            return; // never touched: the plain header runs its own subtitle fades
+        }
+        stackedStatusApplied = stacked;
+        if (titleTextView != null) {
+            titleTextView.setAlpha(stacked ? 1f - stackedStatus : 1f);
+        }
+        if (subtitle != null) {
+            subtitle.setAlpha(stacked ? stackedStatus : 1f);
+        }
+        invalidate();
+    }
     private final android.graphics.Paint chevronPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
     private final android.graphics.Path chevronPath = new android.graphics.Path();
 
@@ -779,10 +839,10 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             titleTextView.setTextSizePx(dp(brinaStacked ? 14f : 17.5f));
         }
         if (subtitleTextView != null) {
-            subtitleTextView.setTextSizePx(dp(brinaStacked ? 11f : 13.5f));
+            subtitleTextView.setTextSizePx(dp(brinaStacked ? 12f : 13.5f));
         }
         if (animatedSubtitleTextView != null && brinaStacked) {
-            animatedSubtitleTextView.setTextSize(dp(11f));
+            animatedSubtitleTextView.setTextSize(dp(12f));
         }
         glassMode = true;
     }
@@ -804,25 +864,30 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         }
     }
 
-    /** Avatar above, name and status centered in the pill below; badges follow the avatar. */
+    /** Avatar above, the name centered in the small pill over its lower edge; badges follow the avatar. */
     private void layoutStacked() {
         final int barTop = occupyStatusBar ? AndroidUtilities.statusBarHeight : 0;
         final int cy = barTop + ActionBar.getCurrentActionBarHeight() / 2;
         // the pill spans [leftPadding - 3dp, leftPadding - 3dp + visual width] in our coordinates
-        final float center = leftPadding - dp(3) + getVisualWidth() / 2f;
+        final int visualWidth = getVisualWidth();
+        final float pillLeft = leftPadding - dp(3);
+        final float center = pillLeft + visualWidth / 2f;
         final int aw = avatarImageView.getMeasuredWidth();
         final int ax = (int) (center - aw / 2f);
-        // the avatar overlaps the top of the pill a little
-        final int ay = cy + dp(STACKED_PILL_TOP_DP + 6) - aw;
-        avatarImageView.layout(ax, ay, ax + aw, ay + aw);
-
         final int pillTop = cy + dp(STACKED_PILL_TOP_DP);
+        final int ay = pillTop + dp(STACKED_OVERLAP_DP) - aw;
+        avatarImageView.layout(ax, ay, ax + aw, ay + aw);
+        stackedPillRect.set(pillLeft, pillTop, pillLeft + visualWidth, pillTop + dp(STACKED_PILL_HEIGHT_DP));
+        stackedPillPath.rewind();
+        stackedPillPath.addRoundRect(stackedPillRect, dp(STACKED_PILL_HEIGHT_DP) / 2f, dp(STACKED_PILL_HEIGHT_DP) / 2f, android.graphics.Path.Direction.CW);
+
+        final int pillCenter = pillTop + dp(STACKED_PILL_HEIGHT_DP) / 2;
         final int tw = titleTextView.getMeasuredWidth();
         // the name and its chevron are centered together
         final float titleWidth = titleTextView.getExactWidthIncludeDrawables();
         final int tx = (int) (center - (titleWidth + dp(STACKED_CHEVRON_DP)) / 2f);
         stackedChevronX = tx + titleWidth + dp(4);
-        final int ty = pillTop + dp(11.5f) - titleTextView.getTextHeight() / 2 - titleTextView.getPaddingTop();
+        final int ty = pillCenter - titleTextView.getTextHeight() / 2 - titleTextView.getPaddingTop();
         titleTextView.layout(tx, ty, tx + tw, ty + titleTextView.getTextHeight() + titleTextView.getPaddingTop() + titleTextView.getPaddingBottom());
         SimpleTextView larger = this.titleTextLargerCopyView.get();
         if (larger != null) {
@@ -833,9 +898,10 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             final int sw = subtitle.getMeasuredWidth();
             final float subtitleWidth = subtitleTextView != null ? subtitleTextView.getExactWidthIncludeDrawables() : animatedSubtitleTextView.getDrawable().getCurrentWidth();
             final int sx = (int) (center - subtitleWidth / 2f);
-            final int sy = pillTop + dp(26.5f) - subtitle.getMeasuredHeight() / 2;
+            final int sy = pillCenter - subtitle.getMeasuredHeight() / 2;
             subtitle.layout(sx, sy, sx + sw, sy + subtitle.getMeasuredHeight());
         }
+        updateStackedStatus();
         SimpleTextView largerSub = this.subtitleTextLargerCopyView.get();
         if (largerSub != null) {
             largerSub.layout(0, 0, 0, 0);
@@ -1168,6 +1234,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                 }
             }
         }
+        updateStackedStatus();
     }
 
     public void updateSubtitle() {
@@ -1819,12 +1886,12 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             width = Math.max(width, subtitleTextView.getExactWidthIncludeDrawables());
         }
         if (isBrinaStacked()) {
-            // the pill holds the name with its chevron, and the status under them
+            // the pill hugs the name with its chevron, or the status while someone is typing
             float stackedWidth = (titleTextView != null ? titleTextView.getExactWidthIncludeDrawables() : 0) + dp(STACKED_CHEVRON_DP);
-            if (subtitleTextView != null) {
+            if (subtitleTextView != null && currentTypingDrawable != null) {
                 stackedWidth = Math.max(stackedWidth, subtitleTextView.getExactWidthIncludeDrawables());
             }
-            return (int) (stackedWidth + dp(28));
+            return (int) (stackedWidth + dp(STACKED_PILL_PADDING_DP) * 2);
         }
         if (hasVisibleAvatar()) {
             width += dp(52 + 18);

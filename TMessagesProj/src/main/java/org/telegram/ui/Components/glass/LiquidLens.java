@@ -19,10 +19,11 @@ import org.telegram.ui.ActionBar.Theme;
 /**
  * The moving glass selection used by tab strips, attach bars and menus.
  *
- * <p>The lens follows a target rectangle on a spring. While it travels (or is held) it swells
- * into clear glass, taller than the track it rides in, with bright bands along the top and bottom
- * and chromatic fringes at both ends. It also reports a {@linkplain #getTugX() tug} so the host
- * can nudge its whole track along the direction of travel.
+ * <p>The lens follows a target rectangle on a spring and behaves like a drop of glass. Held or
+ * slowing down it is a tall bubble, standing past the track it rides in, with bright bands along
+ * its top and bottom; at speed it stretches long and flat and clears completely. Chromatic fringes
+ * light both ends, and what lies just outside the rim is bent back inside it. It also reports a
+ * {@linkplain #getTugX() tug} so the host can nudge its whole track along the direction of travel.
  *
  * <p>Per frame the host calls {@link #setTarget}, then {@link #step}, then draws in this order:
  * {@link #drawBody}, its content (optionally through {@link #drawRefracted}), {@link #drawGlass}.
@@ -38,16 +39,26 @@ public final class LiquidLens {
         return (float) (1.0 - Math.exp(-6.4 * t) * Math.cos(7.2 * t));
     };
 
-    private static final float STIFFNESS = 340f;
-    private static final float DAMPING = 2f * 0.74f * (float) Math.sqrt(STIFFNESS);
+    private static final float MOVE_DAMPING_RATIO = 0.74f;
     private static final float SWELL_STIFFNESS = 250f;
     private static final float SWELL_DAMPING = 2f * 0.6f * (float) Math.sqrt(SWELL_STIFFNESS);
+    /** How much of the swell height speed takes away: the drop flattens as it stretches. */
+    private static final float FLATTEN = 0.75f;
+    /** The rim's bent band, as a fraction of the lens width at each end. */
+    private static final float RIM_BAND = 0.17f;
 
     private final View host;
+
+    private float stiffness = 340f;
+    private float damping = 2f * MOVE_DAMPING_RATIO * (float) Math.sqrt(stiffness);
 
     /** Swell proportions, relative to the resting size. */
     private float swellWidth = 0.18f;
     private float swellHeight = 0.6f;
+    /** Extra length at full speed, relative to the resting width. */
+    private float stretchWidth = 0.85f;
+    /** How far the resting fill clears as the lens swells. */
+    private float clearing = 0.7f;
     private float refraction = 1.1f;
     private float tugDp = 4f;
     private float speedForFullSwell = dp(700);
@@ -56,6 +67,7 @@ public final class LiquidLens {
     private float x, vx, width, vw;
     private float targetX, targetWidth, centerY, restHeight;
     private float swell, vSwell;
+    private float stretch, vStretch;
     private float visibility = 1f;
     private float targetVisibility = 1f;
     private boolean pressed;
@@ -64,7 +76,9 @@ public final class LiquidLens {
 
     private final RectF rect = new RectF();
     private final RectF band = new RectF();
+    private final RectF innerRect = new RectF();
     private final Path path = new Path();
+    private final Path innerPath = new Path();
     private float radius;
 
     private final Paint bodyPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -82,6 +96,25 @@ public final class LiquidLens {
     public LiquidLens setSwell(float widthFraction, float heightFraction) {
         swellWidth = widthFraction;
         swellHeight = heightFraction;
+        return this;
+    }
+
+    /** Sets how much longer the lens gets at full speed, as a fraction of its resting width. */
+    public LiquidLens setStretch(float widthFraction) {
+        stretchWidth = widthFraction;
+        return this;
+    }
+
+    /** Sets how far the resting fill clears as the lens swells: 0 keeps it, 1 clears it entirely. */
+    public LiquidLens setClearing(float fraction) {
+        clearing = fraction;
+        return this;
+    }
+
+    /** Sets the stiffness of the spring that carries the lens to its target. */
+    public LiquidLens setStiffness(float value) {
+        stiffness = value;
+        damping = 2f * MOVE_DAMPING_RATIO * (float) Math.sqrt(value);
         return this;
     }
 
@@ -168,13 +201,16 @@ public final class LiquidLens {
         if (!settled && dt > 0f) {
             final float h = dt / 2f;
             for (int i = 0; i < 2; i++) {
-                vx += (STIFFNESS * (targetX - x) - DAMPING * vx) * h;
+                vx += (stiffness * (targetX - x) - damping * vx) * h;
                 x += vx * h;
-                vw += (STIFFNESS * (targetWidth - width) - DAMPING * vw) * h;
+                vw += (stiffness * (targetWidth - width) - damping * vw) * h;
                 width += vw * h;
-                final float swellTarget = pressed ? 1f : Math.min(1f, Math.abs(vx) / speedForFullSwell);
+                final float speed = Math.min(1f, Math.abs(vx) / speedForFullSwell);
+                final float swellTarget = pressed ? 1f : speed;
                 vSwell += (SWELL_STIFFNESS * (swellTarget - swell) - SWELL_DAMPING * vSwell) * h;
                 swell += vSwell * h;
+                vStretch += (SWELL_STIFFNESS * (speed - stretch) - SWELL_DAMPING * vStretch) * h;
+                stretch += vStretch * h;
             }
             final float rate = dt / 0.12f;
             if (visibility < targetVisibility) {
@@ -185,16 +221,18 @@ public final class LiquidLens {
             if (Math.abs(targetX - x) < 0.5f && Math.abs(vx) < 4f
                 && Math.abs(targetWidth - width) < 0.5f && Math.abs(vw) < 4f
                 && !pressed && Math.abs(swell) < 0.003f && Math.abs(vSwell) < 0.01f
+                && Math.abs(stretch) < 0.003f && Math.abs(vStretch) < 0.01f
                 && visibility == targetVisibility) {
                 settled = true;
                 x = targetX;
                 width = targetWidth;
-                vx = vw = swell = vSwell = 0f;
+                vx = vw = swell = vSwell = stretch = vStretch = 0f;
             }
         }
         final float s = Math.max(0f, swell);
-        final float w = width * (1f + swellWidth * s);
-        final float h = restHeight * (1f + swellHeight * s);
+        final float st = Math.max(0f, stretch);
+        final float w = width * (1f + swellWidth * s + stretchWidth * st);
+        final float h = restHeight * (1f + swellHeight * s * (1f - FLATTEN * Math.min(1f, st)));
         rect.set(x - w / 2f, centerY - h / 2f, x + w / 2f, centerY + h / 2f);
         radius = Math.min(w, h) / 2f;
         path.rewind();
@@ -211,10 +249,11 @@ public final class LiquidLens {
         }
         final float s = Math.max(0f, Math.min(1f, swell));
         bodyPaint.setShader(null);
-        bodyPaint.setColor(Theme.multAlpha(color, visibility * (1f - 0.7f * s)));
+        bodyPaint.setColor(Theme.multAlpha(color, visibility * (1f - clearing * s)));
         canvas.drawRoundRect(rect, radius, radius, bodyPaint);
-        if (s > 0.01f) {
-            bodyPaint.setColor(Theme.multAlpha(dark ? 0xFFFFFFFF : 0xFF000000, (dark ? 0.08f : 0.04f) * s * visibility));
+        if (s > 0.01f && clearing > 0f) {
+            // clear glass reads a shade deeper than the pane it slides over
+            bodyPaint.setColor(Theme.multAlpha(0xFF000000, (dark ? 0.16f : 0.04f) * s * visibility));
             canvas.drawRoundRect(rect, radius, radius, bodyPaint);
         }
     }
@@ -237,6 +276,30 @@ public final class LiquidLens {
         canvas.scale(magnify, magnify, rect.centerX(), rect.centerY());
         content.run();
         canvas.restore();
+
+        if (s > 0.25f) {
+            drawBentRim(canvas, content, s);
+        }
+    }
+
+    /** Folds what lies just past each end of the lens back inside its rim, squeezed and mirrored. */
+    private void drawBentRim(Canvas canvas, Runnable content, float amount) {
+        final float band = rect.width() * RIM_BAND;
+        innerRect.set(rect.left + band, rect.top, rect.right - band, rect.bottom);
+        final float innerRadius = Math.min(innerRect.width(), innerRect.height()) / 2f;
+        innerPath.rewind();
+        innerPath.addRoundRect(innerRect, innerRadius, innerRadius, Path.Direction.CW);
+        final float stretchY = 1f + 0.25f * amount;
+        for (int side = 0; side < 2; side++) {
+            final boolean left = side == 0;
+            canvas.save();
+            canvas.clipPath(path);
+            LiquidGlassStyle.clipOut(canvas, innerPath);
+            canvas.clipRect(left ? rect.left : rect.centerX(), rect.top, left ? rect.centerX() : rect.right, rect.bottom);
+            canvas.scale(-0.6f, stretchY, left ? rect.left : rect.right, rect.centerY());
+            content.run();
+            canvas.restore();
+        }
     }
 
     /** The glass itself, on top of the content: rim, and bands and fringes while swollen. */
@@ -244,11 +307,13 @@ public final class LiquidLens {
         if (visibility <= 0f || rect.isEmpty()) {
             return;
         }
-        drawGlass(canvas, rect, radius, Math.max(0f, Math.min(1f, swell)), visibility, dark);
+        final float amount = Math.max(0f, Math.min(1f, swell));
+        // the bands belong to the tall bubble; stretched out, they spread too thin to show
+        final float bands = amount * (1f - Math.max(0f, Math.min(1f, stretch)));
+        drawGlass(canvas, rect, radius, amount, bands, visibility, dark);
     }
 
-    /** Glass effects for a host that does its own motion, such as the main dock. */
-    public void drawGlass(Canvas canvas, RectF area, float r, float amount, float alpha, boolean dark) {
+    private void drawGlass(Canvas canvas, RectF area, float r, float amount, float bands, float alpha, boolean dark) {
         final float stroke = AndroidUtilities.dpf2(1f);
         final float inset = stroke / 2f;
         final float restRim = dark ? 0.22f : 0.5f;
@@ -276,7 +341,7 @@ public final class LiquidLens {
         final float bandHeight = Math.max(dp(2), h * 0.075f);
         final float cx = area.centerX();
         bandPaint.setShader(new LinearGradient(cx - bandWidth / 2f, 0, cx + bandWidth / 2f, 0,
-            new int[] {0, Theme.multAlpha(0xFFFFFFFF, 0.6f * amount * alpha), 0},
+            new int[] {0, Theme.multAlpha(0xFFFFFFFF, 0.6f * bands * alpha), 0},
             null, Shader.TileMode.CLAMP));
         final float gap = h * 0.055f;
         band.set(cx - bandWidth / 2f, area.top + gap, cx + bandWidth / 2f, area.top + gap + bandHeight);

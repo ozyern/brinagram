@@ -2752,11 +2752,13 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             }
         });
-        // BrinaGram: the plus takes the left side of the composer, the smile moves into the field's right end
+        // BrinaGram: the plus takes the left side of the composer, the smile moves into the field's
+        // right end and only appears while a keyboard is up
         messageEditTextContainer.addView(emojiButton, useBrinaComposer()
             ? LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT)
             : LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.LEFT, 2, 0, 0, 0));
         setEmojiButtonImage(false, false);
+        updateBrinaEmojiButton(false);
 
         deleteRichDraftButton = new ImageView(context);
         deleteRichDraftButton.setScaleType(ImageView.ScaleType.CENTER);
@@ -8804,6 +8806,41 @@ public class ChatActivityEnterView extends FrameLayout implements
         return parentFragment != null && !isStories;
     }
 
+    private float brinaEmojiFactor = 1f;
+    private boolean brinaEmojiShown = true;
+    private ValueAnimator brinaEmojiAnimator;
+
+    /** The smile belongs to the keyboard: it shows only while the keyboard or emoji panel is open. */
+    private void updateBrinaEmojiButton(boolean animated) {
+        if (emojiButton == null || !useBrinaComposer()) {
+            return;
+        }
+        final boolean show = keyboardVisible || isPopupShowing() || searchingType != 0;
+        if (show == brinaEmojiShown) {
+            return;
+        }
+        brinaEmojiShown = show;
+        emojiButton.setClickable(show);
+        emojiButton.setFocusable(show);
+        if (brinaEmojiAnimator != null) {
+            brinaEmojiAnimator.cancel();
+            brinaEmojiAnimator = null;
+        }
+        if (!animated) {
+            brinaEmojiFactor = show ? 1f : 0f;
+            updateEmojiButtonParams();
+            return;
+        }
+        brinaEmojiAnimator = ValueAnimator.ofFloat(brinaEmojiFactor, show ? 1f : 0f);
+        brinaEmojiAnimator.setDuration(show ? 260 : 160);
+        brinaEmojiAnimator.setInterpolator(show ? org.telegram.ui.Components.glass.LiquidLens.SPRING : CubicBezierInterpolator.EASE_OUT);
+        brinaEmojiAnimator.addUpdateListener(a -> {
+            brinaEmojiFactor = (float) a.getAnimatedValue();
+            updateEmojiButtonParams();
+        });
+        brinaEmojiAnimator.start();
+    }
+
     private boolean isBrinaPlusHidden() {
         return recordingAudioVideo || recordedAudioPanel != null && recordedAudioPanel.getVisibility() == VISIBLE;
     }
@@ -12719,6 +12756,8 @@ public class ChatActivityEnterView extends FrameLayout implements
         if (show == 2) {
             return;
         }
+        // once this call has settled which panel is open
+        AndroidUtilities.runOnUIThread(() -> updateBrinaEmojiButton(true));
         if (show == 1) {
             if (contentType == 0) {
                 if (parentActivity == null && emojiView == null) {
@@ -13244,6 +13283,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             lastSizeChangeValue2 = isWidthGreater;
             keyboardVisible = height > 0;
             checkBotMenu();
+            updateBrinaEmojiButton(true);
             return;
         }
         if (height > dp(50) && keyboardVisible && !AndroidUtilities.isInMultiwindow) {
@@ -13341,6 +13381,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         boolean oldValue = keyboardVisible;
         keyboardVisible = height > 0;
         checkBotMenu();
+        updateBrinaEmojiButton(true);
         if (keyboardVisible && isPopupShowing() && stickersExpansionAnim == null) {
             showPopup(0, currentPopupContentType);
         } else if (!keyboardVisible && !isPopupShowing() && botButtonsMessageObject != null && replyingMessageObject != botButtonsMessageObject && (!hasBotWebView() && !botCommandsMenuIsShowing() && !BaseFragment.hasSheets(parentFragment)) && (messageEditText == null || TextUtils.isEmpty(messageEditText.getText())) && botReplyMarkup != null && !botReplyMarkup.rows.isEmpty()) {
@@ -14871,9 +14912,10 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     private void updateEmojiButtonParams() {
-        emojiButton.setScaleX(emojiButtonPaddingScale * emojiButtonScale);
-        emojiButton.setScaleY(emojiButtonPaddingScale * emojiButtonScale);
-        emojiButton.setAlpha(emojiButtonPaddingAlpha * emojiButtonAlpha);
+        final float brinaScale = 0.6f + 0.4f * brinaEmojiFactor;
+        emojiButton.setScaleX(emojiButtonPaddingScale * emojiButtonScale * brinaScale);
+        emojiButton.setScaleY(emojiButtonPaddingScale * emojiButtonScale * brinaScale);
+        emojiButton.setAlpha(emojiButtonPaddingAlpha * emojiButtonAlpha * Math.max(0f, Math.min(1f, brinaEmojiFactor)));
     }
 
     public void setOverrideHint(CharSequence overrideHint) {

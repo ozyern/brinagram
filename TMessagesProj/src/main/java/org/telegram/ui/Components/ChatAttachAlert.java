@@ -2643,8 +2643,68 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
 
             private boolean mHasFadeLeft, mHasFadeRight;
 
-            private final org.telegram.ui.Components.glass.LiquidLens lens = new org.telegram.ui.Components.glass.LiquidLens(this).setSwell(0.12f, 0.16f).setTugDp(0f);
+            private final org.telegram.ui.Components.glass.LiquidLens lens = new org.telegram.ui.Components.glass.LiquidLens(this).setSwell(0.1f, 0.2f).setTugDp(0f);
             private View lensChild;
+            private View lensDownChild;
+            private View lensOverChild;
+            private boolean lensDragging;
+            private float lensDownX, lensFingerX;
+
+            /** The selected tab's lens can be picked up and slid along the bar to choose another. */
+            @Override
+            public boolean dispatchTouchEvent(MotionEvent e) {
+                final float x = e.getX();
+                switch (e.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        lensDownX = x;
+                        lensDragging = false;
+                        lensDownChild = findChildViewUnder(x, e.getY());
+                        if (lensDownChild != null && lensDownChild == lensChild) {
+                            lens.setPressed(true);
+                        }
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        if (!lensDragging && lensDownChild != null && lensDownChild == lensChild
+                                && !canScrollHorizontally(1) && !canScrollHorizontally(-1)
+                                && Math.abs(x - lensDownX) > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
+                            lensDragging = true;
+                            lensOverChild = lensChild;
+                            final MotionEvent cancel = MotionEvent.obtain(e);
+                            cancel.setAction(MotionEvent.ACTION_CANCEL);
+                            super.dispatchTouchEvent(cancel);
+                            cancel.recycle();
+                        }
+                        if (lensDragging) {
+                            lensFingerX = x;
+                            final View over = findChildViewUnder(Math.max(0f, Math.min(getWidth() - 1f, x)), getHeight() / 2f);
+                            if (over != null && over != lensOverChild) {
+                                lensOverChild = over;
+                                try {
+                                    performHapticFeedback(android.view.HapticFeedbackConstants.TEXT_HANDLE_MOVE);
+                                } catch (Exception ignored) {
+                                }
+                            }
+                            invalidate();
+                            return true;
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        lens.setPressed(false);
+                        lensDownChild = null;
+                        if (lensDragging) {
+                            lensDragging = false;
+                            if (e.getActionMasked() == MotionEvent.ACTION_UP && lensOverChild != null && lensOverChild != lensChild && getOnItemClickListener() != null) {
+                                getOnItemClickListener().onItemClick(lensOverChild, getChildAdapterPosition(lensOverChild));
+                            }
+                            lensOverChild = null;
+                            invalidate();
+                            return true;
+                        }
+                        break;
+                }
+                return super.dispatchTouchEvent(e);
+            }
 
             @Override
             protected void dispatchDraw(@NonNull Canvas canvas) {
@@ -2664,7 +2724,11 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
                     if (lensChild == null) {
                         lens.setVisible(true, true);
                     }
-                    lens.setTarget(selected.getX(), selected.getY(), selected.getX() + selected.getWidth(), selected.getY() + selected.getHeight(), selected == lensChild);
+                    final float halfWidth = selected.getWidth() / 2f;
+                    final float lensX = lensDragging
+                        ? Math.max(halfWidth, Math.min(getWidth() - halfWidth, lensFingerX))
+                        : selected.getX() + halfWidth;
+                    lens.setTarget(lensX - halfWidth, selected.getY(), lensX + halfWidth, selected.getY() + selected.getHeight(), !lensDragging && selected == lensChild);
                 } else if (lensChild != null) {
                     lens.setVisible(false, true);
                 }
@@ -2672,7 +2736,7 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
                 lens.step();
                 lens.drawBody(canvas, dark ? 0x29FFFFFF : 0x14000000, dark);
 
-                super.dispatchDraw(canvas);
+                lens.drawRefracted(canvas, () -> super.dispatchDraw(canvas));
 
                 lens.drawGlass(canvas, dark);
                 hasFadeLeft.setValue(mHasFadeLeft, true);

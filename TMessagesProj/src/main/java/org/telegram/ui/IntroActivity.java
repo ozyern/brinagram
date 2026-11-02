@@ -95,6 +95,10 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class IntroActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
     private final static int ICON_WIDTH_DP = 200, ICON_HEIGHT_DP = 150;
+    private final static int WELCOME_BACKGROUND = 0xFF000000;
+    private final static float WELCOME_TITLE_SP = 36;
+    /** Large titles are set slightly tight. */
+    private final static float WELCOME_TITLE_TRACKING = -0.02f;
 
     private final Object pagerHeaderTag = new Object(),
             pagerMessageTag = new Object();
@@ -464,8 +468,8 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
     }
 
     /**
-     * One quiet page: the name, the quote in a gradient, and the button. The swipe pages and their
-     * GL icons stay hidden; a hidden TextureView never gets a surface, so GL never starts.
+     * One quiet dark page: the name, the quote in a gradient, and the button. The swipe pages and
+     * their GL icons stay hidden; a hidden TextureView never gets a surface, so GL never starts.
      */
     private void createWelcomePage(Context context, View themeButton) {
         frameLayout2.setVisibility(View.GONE);
@@ -479,35 +483,38 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
         final TextView nameView = new TextView(context);
         nameView.setText(BrinaBrand.APP_NAME);
-        nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 38);
+        nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, WELCOME_TITLE_SP);
         nameView.setTypeface(AndroidUtilities.bold());
-        nameView.setTextColor(0xFF14141A);
+        nameView.setLetterSpacing(WELCOME_TITLE_TRACKING);
+        nameView.setTextColor(0xFFFFFFFF);
         welcome.addView(nameView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         final TextView quoteView = new TextView(context) {
             @Override
             protected void onSizeChanged(int w, int h, int oldw, int oldh) {
                 super.onSizeChanged(w, h, oldw, oldh);
-                getPaint().setShader(new android.graphics.LinearGradient(0, 0, w * 0.8f, 0,
-                    new int[] {0xFFB02A8F, 0xFFE8467C, 0xFFE8913F}, null, android.graphics.Shader.TileMode.CLAMP));
+                getPaint().setShader(new android.graphics.LinearGradient(0, 0, w * 0.82f, h * 0.35f,
+                    new int[] {0xFF3D8BFF, 0xFF6C63FF, 0xFFB14DFF, 0xFFF04FC8}, null, android.graphics.Shader.TileMode.CLAMP));
             }
         };
         quoteView.setText(LocaleController.getString(R.string.BrinaWelcomeQuote));
-        quoteView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 38);
+        quoteView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, WELCOME_TITLE_SP);
         quoteView.setTypeface(AndroidUtilities.bold());
-        quoteView.setTextColor(0xFFE8467C);
-        quoteView.setLineSpacing(dp(4), 1f);
+        quoteView.setLetterSpacing(WELCOME_TITLE_TRACKING);
+        quoteView.setTextColor(0xFF6C63FF);
+        quoteView.setLineSpacing(dp(3), 1f);
         welcome.addView(quoteView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 6, 0, 0));
 
         frameContainerView.addView(welcome, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT, 28, 120, 28, 0));
 
-        // the lines rise into place one after the other
+        // the lines rise into place one after the other, as the first-run animation clears
+        final long revealAfter = Math.max(0L, org.telegram.ui.Components.glass.BrinaSetupAnimation.remainingMillis() - 350L);
         final View[] lines = {nameView, quoteView, startMessagingButton};
         for (int i = 0; i < lines.length; i++) {
             lines[i].setAlpha(0f);
             lines[i].setTranslationY(dp(22));
             lines[i].animate().alpha(1f).translationY(0f)
-                .setStartDelay(80L + 110L * i)
+                .setStartDelay(revealAfter + 80L + 110L * i)
                 .setDuration(620)
                 .setInterpolator(org.telegram.ui.Components.CubicBezierInterpolator.EASE_OUT_QUINT)
                 .start();
@@ -539,7 +546,12 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public boolean hasForceLightStatusBar() {
-        return true;
+        return false;
+    }
+
+    @Override
+    public int getNavigationBarColor() {
+        return WELCOME_BACKGROUND;
     }
 
     @Override
@@ -1037,14 +1049,13 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
     }
 
     private void updateColors(boolean fromTheme) {
-        // BrinaGram: champagne-gold pill matching the medallion
-        startMessagingButtonBackground.setDark(false);
-        auroraView.setDark(Theme.isCurrentThemeDark());
+        startMessagingButtonBackground.setDark(true);
+        auroraView.setDark(true);
         logoDrawable.setColorFilter(Theme.multAlpha(getThemedColor(Theme.key_actionBarDefaultTitle), 0.9f), PorterDuff.Mode.MULTIPLY);
-        fragmentView.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[] {0xFFFFF9F2, 0xFFFFEDF1, 0xFFFFD3E2}));
-        switchLanguageTextView.setTextColor(0xFFA8763F);
-        startMessagingButton.setTextColor(0xFF14141A);
-        startMessagingButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(26), Color.TRANSPARENT, 0x14000000));
+        fragmentView.setBackgroundColor(WELCOME_BACKGROUND);
+        switchLanguageTextView.setTextColor(0x99EBEBF5);
+        startMessagingButton.setTextColor(0xFFFFFFFF);
+        startMessagingButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(26), Color.TRANSPARENT, 0x1FFFFFFF));
         darkThemeDrawable.setColorFilter(new PorterDuffColorFilter(Theme.isCurrentThemeDark() ? 0xFFD8B07A : 0xFFA8763F, PorterDuff.Mode.SRC_IN));
         bottomPages.invalidate();
         if (fromTheme) {
@@ -1071,6 +1082,6 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public boolean isLightStatusBar() {
-        return true; // the page is bright on every theme
+        return false; // the page is dark on every theme
     }
 }

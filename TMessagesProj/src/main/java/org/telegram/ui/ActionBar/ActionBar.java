@@ -2254,6 +2254,18 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         }
     }
 
+    private static void setMenuDiscsBare(ViewGroup bar) {
+        if (bar == null) {
+            return;
+        }
+        for (int i = 0, n = bar.getChildCount(); i < n; i++) {
+            final android.graphics.drawable.Drawable background = bar.getChildAt(i).getBackground();
+            if (background instanceof org.telegram.ui.Components.glass.GlassCircleDrawable) {
+                ((org.telegram.ui.Components.glass.GlassCircleDrawable) background).setBare(true);
+            }
+        }
+    }
+
     public boolean doNotDrawGlassMenu;
     private boolean drawGlassTitle = true;
 
@@ -2286,9 +2298,17 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             final int rightDefault = getWidth() - rightOffset;
             final int widthDefault = rightDefault - leftDefault;
             final int left, right;
+            // BrinaGram: a small pill holds the name, overlapping the bottom of the avatar above it
+            final boolean stacked = chatAvatarContainer != null && chatAvatarContainer.isBrinaStacked()
+                && searchFactor <= 0f && actionModeFactor <= 0f;
             if (chatAvatarContainer != null) {
                 final int width = lerp(Math.min(widthDefault, (int) animatorAvatarContainerWidth.getFactor() + p * 2), widthDefault, Math.max(searchFactor, actionModeFactor));
-                left = (rightDefault + leftDefault - width) / 2;
+                if (stacked) {
+                    // centered on the screen, as bar titles are, unless a long name has to give way
+                    left = Math.max(leftDefault, Math.min(rightDefault - width, (getWidth() - width) / 2));
+                } else {
+                    left = (rightDefault + leftDefault - width) / 2;
+                }
                 right = left + width;
 
                 final float translationX = left
@@ -2302,9 +2322,6 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 right = rightDefault;
             }
 
-            // BrinaGram: the pill holds the name and status, under the avatar
-            final boolean stacked = chatAvatarContainer != null && chatAvatarContainer.isBrinaStacked()
-                && searchFactor <= 0f && actionModeFactor <= 0f;
             if (stacked != glassPillStacked) {
                 glassPillStacked = stacked;
                 if (stacked) {
@@ -2333,6 +2350,9 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             }
         }
         if (glassDrawableMenu != null && menuWidth > 0 && !glassOnlyBack && !doNotDrawGlassMenu) {
+            // the capsule is the glass: icons on it don't sit on discs of their own as well
+            setMenuDiscsBare(menu);
+            setMenuDiscsBare(actionMode);
             glassDrawableMenu.setBounds(getWidth() - Math.max(s, menuWidth) - p * 2, t, getWidth(), b);
             glassDrawableMenu.setAlpha(hasForcedMenuWidth ? 255 : (int) (255 * animatorHasMenuItems.getFloatValue()));
             glassDrawableMenu.draw(canvas);

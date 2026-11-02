@@ -49,6 +49,16 @@ public class GlassCircleDrawable extends Drawable {
         return this;
     }
 
+    private boolean bare;
+
+    /** Draws only the press light, for icons grouped on a capsule that is already the glass. */
+    public void setBare(boolean value) {
+        if (bare != value) {
+            bare = value;
+            invalidateSelf();
+        }
+    }
+
     /** Overrides the theme: dark glass (for light glyphs) or light glass (for dark glyphs). */
     public void setDarkGlass(boolean darkGlass) {
         this.darkGlass = darkGlass;
@@ -102,6 +112,15 @@ public class GlassCircleDrawable extends Drawable {
         final float cx = b.exactCenterX(), cy = b.exactCenterY();
         final float r = fixedDiameter > 0 ? Math.min(fixedDiameter, Math.min(b.width(), b.height())) / 2f : Math.min(b.width(), b.height()) / 2f;
         final float a = alpha / 255f;
+
+        if (bare) {
+            final float bareLight = Math.max(pressLight, pressedFromState ? 0.14f : 0f);
+            if (bareLight > 0f) {
+                light.setColor(Theme.multAlpha(dark ? 0xFFFFFFFF : 0xFF000000, (dark ? bareLight : bareLight * 0.5f) * a));
+                canvas.drawCircle(cx, cy, r, light);
+            }
+            return;
+        }
 
         shadow.setShadowLayer(dp(6), 0, dp(1.5f), Theme.multAlpha(0x33000000, a));
         canvas.drawCircle(cx, cy, r - dpf2(0.5f), shadow);

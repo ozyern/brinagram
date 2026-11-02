@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.ColorFilter;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -18,16 +19,18 @@ import androidx.annotation.Nullable;
 import org.telegram.messenger.AndroidUtilities;
 
 /**
- * Popup panel: a charcoal (or, on light themes, near-white) gradient with a thin lit rim.
+ * Popup panel: a faintly translucent charcoal (or, on light themes, near-white) gradient with a
+ * thin lit rim, so whatever is behind the menu stays dimly visible through it.
  *
  * <p>It wraps the themed nine-patch, which keeps providing the soft shadow and the paddings that
- * popup positioning code relies on; the panel is painted over the nine-patch's inner area.
+ * popup positioning code relies on; only the shadow around the panel is drawn from it.
  */
 public class GlassMenuDrawable extends Drawable {
 
     private final Drawable base;
     private final Rect padding = new Rect();
     private final RectF inner = new RectF();
+    private final Path panelPath = new Path();
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint rimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private int alpha = 255;
@@ -66,28 +69,32 @@ public class GlassMenuDrawable extends Drawable {
 
     @Override
     public void draw(@NonNull Canvas canvas) {
-        base.draw(canvas);
-        if (invisible) {
-            return;
-        }
         final Rect b = getBounds();
         inner.set(b.left + padding.left, b.top + padding.top, b.right - padding.right, b.bottom - padding.bottom);
-        if (inner.width() <= 0 || inner.height() <= 0) {
+        final float r = dp(LiquidGlassStyle.MENU_RADIUS_DP);
+        if (invisible || inner.width() <= 0 || inner.height() <= 0) {
+            base.draw(canvas);
             return;
         }
+        // the nine-patch's own body would show through the translucent panel: keep only its shadow
+        panelPath.rewind();
+        panelPath.addRoundRect(inner, r, r, Path.Direction.CW);
+        canvas.save();
+        LiquidGlassStyle.clipOut(canvas, panelPath);
+        base.draw(canvas);
+        canvas.restore();
         if (inner.top != shaderTop || inner.bottom != shaderBottom) {
             shaderTop = inner.top;
             shaderBottom = inner.bottom;
             fillPaint.setShader(new LinearGradient(0, inner.top, 0, inner.bottom,
-                dark ? 0xFF262626 : 0xFFFFFFFF,
-                dark ? 0xFF131313 : 0xFFF4F4F6,
+                dark ? 0xEE222222 : 0xF7FFFFFF,
+                dark ? 0xEE141414 : 0xF7F4F4F6,
                 Shader.TileMode.CLAMP));
             rimPaint.setShader(new LinearGradient(0, inner.top, 0, inner.bottom,
                 dark ? 0x38FFFFFF : 0xFFFFFFFF,
                 dark ? 0x0DFFFFFF : 0x0D000000,
                 Shader.TileMode.CLAMP));
         }
-        final float r = dp(LiquidGlassStyle.MENU_RADIUS_DP);
         fillPaint.setAlpha(alpha);
         canvas.drawRoundRect(inner, r, r, fillPaint);
 

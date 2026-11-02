@@ -56,6 +56,10 @@ public final class BrinaSplash {
             }
             // on the decor view, so it stays above everything the activity adds later
             final ViewGroup decor = (ViewGroup) activity.getWindow().getDecorView();
+            if (BrinaSetupAnimation.shouldPlay(activity)) {
+                BrinaSetupAnimation.play(decor);
+                return;
+            }
             final SplashView view = new SplashView(activity);
             decor.addView(view, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             view.start(content);

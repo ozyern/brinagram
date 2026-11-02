@@ -53,15 +53,30 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     private static final int ANIMATOR_ID_CLOSE_BUTTON_VISIBLE = 0;
     private static final int ANIMATOR_ID_SEARCH_ICON_VISIBLE = 1;
     private static final int ANIMATOR_ID_SEARCH_FILTERS_WIDTH = 2;
+    private static final int ANIMATOR_ID_CANCEL_VISIBLE = 3;
+
+    /** Field metrics: the glyph sits this far in, and text starts just past it. */
+    private static final int GLYPH_INSET_DP = 8;
+    private static final int TEXT_INSET_DP = 34;
+    private static final int TEXT_SIZE_SP = 17;
+    private static final int CANCEL_GAP_DP = 10;
+    /** The system's tertiary fill and secondary label, on dark and light backgrounds. */
+    private static final int SYSTEM_FILL_DARK = 0x3D767680;
+    private static final int SYSTEM_FILL_LIGHT = 0x1F767680;
+    private static final int SECONDARY_LABEL_DARK = 0x99EBEBF5;
+    private static final int SECONDARY_LABEL_LIGHT = 0x993C3C43;
 
     private final BoolAnimator animatorCloseIconVisible = new BoolAnimator(ANIMATOR_ID_CLOSE_BUTTON_VISIBLE, this, CubicBezierInterpolator.EASE_OUT_QUINT, 380, false);
     private final BoolAnimator animatorSearchIconVisible = new BoolAnimator(ANIMATOR_ID_SEARCH_ICON_VISIBLE, this, CubicBezierInterpolator.EASE_OUT_QUINT, 380, true);
     private final FactorAnimator animatorSearchFiltersWidth = new FactorAnimator(ANIMATOR_ID_SEARCH_FILTERS_WIDTH, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 280);
+    private final BoolAnimator animatorCancelVisible = new BoolAnimator(ANIMATOR_ID_CANCEL_VISIBLE, this, CubicBezierInterpolator.EASE_OUT_QUINT, 380, false);
 
     private final Theme.ResourcesProvider resourcesProvider;
 
     private final ImageView searchIcon;
     private final ImageView closeIcon;
+    private final TextView cancelButton;
+    private boolean cancelButtonEnabled;
     private final LinearLayout additionalIconsLayout;
     private boolean closeButtonForcedVisible;
     public final EditTextBoldCursor editText;
@@ -94,14 +109,14 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
                 return super.onKeyDown(keyCode, event);
             }
         };
-        editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_SP);
         editText.setCursorWidth(1.5f);
         editText.setInputType(editText.getInputType() | InputType.TYPE_TEXT_VARIATION_FILTER);
         editText.setSingleLine(true);
         editText.setBackground(null);
         editText.setVerticalScrollBarEnabled(false);
         editText.setHorizontalScrollBarEnabled(false);
-        editText.setPadding(dp(48), 0, dp(48), 0);
+        editText.setPadding(dp(TEXT_INSET_DP), 0, dp(TEXT_INSET_DP), 0);
         editText.setClipToPadding(true);
         editText.setImeOptions(EditorInfo.IME_ACTION_SEARCH | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
         editText.setGravity((LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL);
@@ -128,8 +143,8 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
 
         searchIcon = new ImageView(context);
         searchIcon.setScaleType(ImageView.ScaleType.CENTER);
-        searchIcon.setImageResource(R.drawable.outline_search_1_24);
-        addView(searchIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT), 12, 0, 12, 0));
+        searchIcon.setImageResource(R.drawable.brina_search_glass);
+        addView(searchIcon, LayoutHelper.createFrame(20, 20, Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT), GLYPH_INSET_DP, 0, GLYPH_INSET_DP, 0));
 
         additionalIconsLayout = new LinearLayout(context);
         additionalIconsLayout.setOrientation(LinearLayout.HORIZONTAL);
@@ -137,10 +152,12 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
 
         closeIcon = new ImageView(context);
         closeIcon.setScaleType(ImageView.ScaleType.CENTER);
-        closeIcon.setImageResource(R.drawable.miniplayer_close);
+        closeIcon.setImageResource(R.drawable.brina_search_clear);
         closeIcon.setVisibility(GONE);
         closeIcon.setOnClickListener(v -> {
-            if (hasRemovableFilters()) {
+            if (cancelButtonEnabled && !hasRemovableFilters()) {
+                editText.getText().clear(); // with a Cancel button beside the field, this only clears
+            } else if (hasRemovableFilters()) {
                 if (searchFiltersListener != null) {
                     searchFiltersListener.hideActionMode();
                 }
@@ -156,7 +173,19 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
                 editText.getText().clear();
             }
         });
-        addView(closeIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT), 12, 0, 12, 0));
+        addView(closeIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT), 5, 0, 5, 0));
+
+        cancelButton = new TextView(context);
+        cancelButton.setText(LocaleController.getString(R.string.Cancel));
+        cancelButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_SP);
+        cancelButton.setGravity(Gravity.CENTER);
+        cancelButton.setVisibility(INVISIBLE); // measured even while hidden, so the field knows how far to draw back
+        cancelButton.setOnClickListener(v -> {
+            if (onCloseSearch != null) {
+                onCloseSearch.run();
+            }
+        });
+        addView(cancelButton, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT)));
 
         searchFilterLayout = new LinearLayout(getContext()) {
             @Override
@@ -187,20 +216,23 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
         canvas.save();
+        final int cancelInset = getCancelInset();
+        final int insetLeft = LocaleController.isRTL ? cancelInset : 0;
+        final int insetRight = LocaleController.isRTL ? 0 : cancelInset;
         if (bg != null) {
             bg.setBounds(
-                getPaddingLeft(),
+                getPaddingLeft() + insetLeft,
                 getPaddingTop(),
-                getWidth() - getPaddingRight(),
+                getWidth() - getPaddingRight() - insetRight,
                 getHeight() - getPaddingBottom()
             );
             bg.draw(canvas);
         }
         if (blurredBackgroundDrawable != null) {
             blurredBackgroundDrawable.setBounds(
-                    getPaddingLeft() - dp(4),
+                    getPaddingLeft() - dp(4) + insetLeft,
                     getPaddingTop() - dp(4),
-                    getWidth() - getPaddingRight() + dp(4),
+                    getWidth() - getPaddingRight() + dp(4) - insetRight,
                     (getHeight() - getPaddingBottom()) + dp(4));
             blurredBackgroundDrawable.draw(canvas);
         }
@@ -242,8 +274,8 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
 
     private void checkUi_editTextPaddings() {
         final int filtersWidth = (int) animatorSearchFiltersWidth.getFactor() + dp(6); //searchFilterLayout.getWidth();
-        final int pStart = Math.max(filtersWidth, dp(48));
-        final int pEnd = dp(48) + additionalIconsLayout.getMeasuredWidth();
+        final int pStart = Math.max(filtersWidth, dp(TEXT_INSET_DP));
+        final int pEnd = dp(TEXT_INSET_DP) + additionalIconsLayout.getMeasuredWidth() + getCancelInset();
 
         final int pLeft = LocaleController.isRTL ? pEnd : pStart;
         final int pRight = LocaleController.isRTL ? pStart : pEnd;
@@ -255,6 +287,23 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
         );
         editText.setClipBounds(AndroidUtilities.rectTmp2);
         editText.setPadding(pLeft, 0, pRight, 0);
+    }
+
+    /** How far the field has drawn back to make room for the Cancel button beside it. */
+    private int getCancelInset() {
+        if (!cancelButtonEnabled) {
+            return 0;
+        }
+        return (int) ((cancelButton.getMeasuredWidth() + dp(CANCEL_GAP_DP)) * animatorCancelVisible.getFloatValue());
+    }
+
+    /**
+     * Shows a Cancel button beside the field while search is open (see {@link #setCloseButtonVisible});
+     * it runs the close listener, and the button inside the field only clears the text.
+     */
+    public void setCancelButtonEnabled(boolean enabled) {
+        cancelButtonEnabled = enabled;
+        checkCloseButtonVisible();
     }
 
     public boolean isSectionBackground;
@@ -276,13 +325,15 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
         final boolean isDark = resourcesProvider != null ? resourcesProvider.isDark() : Theme.isCurrentThemeDark();
         bg = isSectionBackground ?
             Theme.createRoundRectDrawableShadowed(dp(20), getThemedColor(Theme.key_windowBackgroundWhite)) :
-            Theme.createRoundRectDrawable(dp(20), isWhiteBackground ? getThemedColor(Theme.key_windowBackgroundWhite) : getThemedColor(Theme.key_windowBackgroundWhiteBlackText, isDark ? 0.07f : 0.05f));
-        searchIcon.setColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteBlackText, 0.6f), PorterDuff.Mode.MULTIPLY);
-        closeIcon.setColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteBlackText, 0.6f), PorterDuff.Mode.MULTIPLY);
-        closeIcon.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, dp(17)));
-        editText.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText, 0.5f));
+            Theme.createRoundRectDrawable(dp(20), isWhiteBackground ? getThemedColor(Theme.key_windowBackgroundWhite) : (isDark ? SYSTEM_FILL_DARK : SYSTEM_FILL_LIGHT));
+        final int secondaryLabel = isDark ? SECONDARY_LABEL_DARK : SECONDARY_LABEL_LIGHT;
+        searchIcon.setColorFilter(secondaryLabel, PorterDuff.Mode.SRC_IN);
+        closeIcon.setColorFilter(secondaryLabel, PorterDuff.Mode.SRC_IN);
+        closeIcon.setBackground(null);
+        editText.setHintTextColor(secondaryLabel);
         editText.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
         editText.setCursorColor(getThemedColor(Theme.key_groupcreate_cursor));
+        cancelButton.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
         if (blurredBackgroundDrawable != null) {
             blurredBackgroundDrawable.updateColors();
         }
@@ -327,14 +378,29 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     }
 
     private void checkCloseButtonVisible() {
-        animatorCloseIconVisible.setValue(closeButtonForcedVisible || editText.length() > 0, true);
+        animatorCloseIconVisible.setValue(editText.length() > 0 || closeButtonForcedVisible && !cancelButtonEnabled, true);
+        animatorCancelVisible.setValue(cancelButtonEnabled && closeButtonForcedVisible, true);
+    }
+
+    /** Keeps the field's end icons inside it as it draws back from the Cancel button. */
+    private void updateCancelLayout(float factor) {
+        final float direction = LocaleController.isRTL ? 1f : -1f;
+        final float shift = direction * getCancelInset();
+        closeIcon.setTranslationX(shift);
+        additionalIconsLayout.setTranslationX(shift);
+        cancelButton.setVisibility(factor > 0f ? VISIBLE : INVISIBLE);
+        cancelButton.setAlpha(factor);
+        cancelButton.setTranslationX(-direction * dp(12) * (1f - factor));
+        checkUi_editTextPaddings();
+        invalidate();
     }
 
     @Override
     public void onFactorChanged(int id, float factor, float fraction, FactorAnimator callee) {
-        if (id == ANIMATOR_ID_CLOSE_BUTTON_VISIBLE) {
+        if (id == ANIMATOR_ID_CANCEL_VISIBLE) {
+            updateCancelLayout(factor);
+        } else if (id == ANIMATOR_ID_CLOSE_BUTTON_VISIBLE) {
             FragmentFloatingButton.setAnimatedVisibility(closeIcon, factor);
-            closeIcon.setRotation((1 - factor) * 90);
         } else if (id == ANIMATOR_ID_SEARCH_ICON_VISIBLE) {
             FragmentFloatingButton.setAnimatedVisibility(searchIcon, factor);
         } else if (id == ANIMATOR_ID_SEARCH_FILTERS_WIDTH) {

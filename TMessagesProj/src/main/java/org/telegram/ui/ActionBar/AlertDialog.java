@@ -326,7 +326,15 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
     public void show() {
         if (!AndroidUtilities.isSafeToShow(getContext())) return;
         dismissed = false;
+        final boolean popupMotion = progressViewStyle == ALERT_TYPE_MESSAGE && getWindow() != null;
+        if (popupMotion) {
+            // our own motion, in place of the system's window animation
+            getWindow().setWindowAnimations(R.style.DialogNoAnimation);
+        }
         super.show();
+        if (popupMotion && containerView != null) {
+            org.telegram.ui.Components.glass.BrinaMotion.popupEnter(containerView).start();
+        }
         if (progressViewContainer != null && progressViewStyle == ALERT_TYPE_SPINNER) {
             progressViewContainer.setScaleX(0);
             progressViewContainer.setScaleY(0);
@@ -1611,13 +1619,29 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
         if (cancelDialog != null) {
             cancelDialog.dismiss();
         }
+        AndroidUtilities.cancelRunOnUIThread(showRunnable);
+
+        final boolean popupMotion = progressViewStyle == ALERT_TYPE_MESSAGE && containerView != null && isShowing() && containerView.isAttachedToWindow();
+        if (!popupMotion) {
+            finishDismiss();
+            return;
+        }
+        final android.animation.ValueAnimator exit = org.telegram.ui.Components.glass.BrinaMotion.popupExit(containerView, org.telegram.ui.Components.glass.BrinaMotion.POPUP_EXIT_MS);
+        exit.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                finishDismiss();
+            }
+        });
+        exit.start();
+    }
+
+    private void finishDismiss() {
         try {
             super.dismiss();
         } catch (Throwable ignore) {
 
         }
-        AndroidUtilities.cancelRunOnUIThread(showRunnable);
-
         if (blurShader != null && blurBitmap != null) {
             blurBitmap.recycle();
             blurShader = null;

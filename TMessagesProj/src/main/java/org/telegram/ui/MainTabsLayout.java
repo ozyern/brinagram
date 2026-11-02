@@ -266,7 +266,6 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
     private final Set<View> tabsWithIgnoreClick = new HashSet<>();
     private final android.graphics.RectF capsuleRect = new android.graphics.RectF();
-    private final org.telegram.ui.Components.glass.LiquidLens capsuleGlass = new org.telegram.ui.Components.glass.LiquidLens(this);
     private final android.graphics.Path capsulePath = new android.graphics.Path();
     private final Paint accentLayerPaint = new Paint();
     private final Paint washPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -406,15 +405,24 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
     /** Page swipe in progress: the capsule follows between {@code from} and {@code to}. */
     private boolean gestureActive;
+    private boolean gesturePressed;
 
     public void setGestureCapsule(@Nullable View from, @Nullable View to, float fraction, boolean active) {
         if (!active) {
             if (gestureActive) {
                 gestureActive = false;
-                // the swipe ended: settle on whichever tab is selected now
+                final boolean wasPressed = gesturePressed;
+                gesturePressed = false;
+                // the swipe ended: settle on whichever tab is selected now, then let go of the swell
                 final View selected = findSelectedTab();
                 if (selected != null && !pressed) {
-                    moveCapsule(centerX(selected));
+                    final float cx = centerX(selected);
+                    moveCapsule(cx);
+                    if (wasPressed) {
+                        releaseWhenArrived(cx, null);
+                    }
+                } else if (wasPressed && !pressed) {
+                    unpress();
                 }
             }
             return;
@@ -423,6 +431,11 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             return;
         }
         gestureActive = true;
+        // a swipe under the dock is the same press, slide and settle a drag on it gets
+        if (!gesturePressed && fraction > 0.001f && fraction < 0.999f) {
+            gesturePressed = true;
+            press();
+        }
         final float target = to == null || to.getVisibility() != View.VISIBLE ? centerX(from) : lerp(centerX(from), centerX(to), fraction);
         capsuleXSpring.cancel();
         capsuleX = springTarget = target;
@@ -698,10 +711,6 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
         // 4. specular highlight (white, lit from 45deg; 0.5 at rest -> 1 held)
         drawHighlight(canvas, capsuleRect, r, lerp(0.5f, 1f, press));
-        // held: bands of bent light and chromatic fringes, as on every other lens
-        if (press > 0.01f) {
-            capsuleGlass.drawGlass(canvas, capsuleRect, r, press, 1f, dark);
-        }
 
         if (pressed || press > 0.001f || capsuleXSpring.isRunning() || Math.abs(velocity) > 0.01f) {
             invalidate();
