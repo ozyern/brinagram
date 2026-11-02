@@ -766,6 +766,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     public static final int STACKED_PILL_TOP_DP = 6;
     public static final int STACKED_PILL_HEIGHT_DP = 36;
     private static final int STACKED_CHEVRON_DP = 12;
+    private float stackedChevronX;
     private final android.graphics.Paint chevronPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
     private final android.graphics.Path chevronPath = new android.graphics.Path();
 
@@ -788,7 +789,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
     private void drawStackedChevron(android.graphics.Canvas canvas) {
         if (isBrinaStacked() && titleTextView != null && titleTextView.getAlpha() > 0.01f) {
-            final float x = titleTextView.getRight() + dp(4);
+            final float x = stackedChevronX;
             final float cy = titleTextView.getTop() + titleTextView.getMeasuredHeight() / 2f;
             chevronPaint.setStyle(android.graphics.Paint.Style.STROKE);
             chevronPaint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
@@ -818,7 +819,9 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         final int pillTop = cy + dp(STACKED_PILL_TOP_DP);
         final int tw = titleTextView.getMeasuredWidth();
         // the name and its chevron are centered together
-        final int tx = (int) (center - (tw + dp(STACKED_CHEVRON_DP)) / 2f);
+        final float titleWidth = titleTextView.getExactWidthIncludeDrawables();
+        final int tx = (int) (center - (titleWidth + dp(STACKED_CHEVRON_DP)) / 2f);
+        stackedChevronX = tx + titleWidth + dp(4);
         final int ty = pillTop + dp(11.5f) - titleTextView.getTextHeight() / 2 - titleTextView.getPaddingTop();
         titleTextView.layout(tx, ty, tx + tw, ty + titleTextView.getTextHeight() + titleTextView.getPaddingTop() + titleTextView.getPaddingBottom());
         SimpleTextView larger = this.titleTextLargerCopyView.get();
@@ -828,7 +831,8 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         final View subtitle = subtitleTextView != null ? subtitleTextView : animatedSubtitleTextView;
         if (subtitle != null) {
             final int sw = subtitle.getMeasuredWidth();
-            final int sx = (int) (center - sw / 2f);
+            final float subtitleWidth = subtitleTextView != null ? subtitleTextView.getExactWidthIncludeDrawables() : animatedSubtitleTextView.getDrawable().getCurrentWidth();
+            final int sx = (int) (center - subtitleWidth / 2f);
             final int sy = pillTop + dp(26.5f) - subtitle.getMeasuredHeight() / 2;
             subtitle.layout(sx, sy, sx + sw, sy + subtitle.getMeasuredHeight());
         }

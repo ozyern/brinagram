@@ -549,6 +549,15 @@ public class ActionBarPopupWindow extends PopupWindow {
         }
 
         @Override
+        public void setBackground(Drawable background) {
+            if (backgroundDrawable instanceof org.telegram.ui.Components.glass.GlassMenuDrawable
+                    && background instanceof org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable) {
+                return;
+            }
+            super.setBackground(background);
+        }
+
+        @Override
         public void setBackgroundDrawable(Drawable drawable) {
             backgroundColor = Color.WHITE;
             backgroundDrawable = drawable;

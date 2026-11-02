@@ -2144,6 +2144,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         if (resourceProvider == null) {
             resourceProvider = new org.telegram.ui.Components.glass.TintedProfileResources();
         }
+        if (resourcesProvider == null) {
+            resourcesProvider = resourceProvider;
+        }
         if (!expandPhoto) {
             expandPhoto = arguments.getBoolean("expandPhoto", false);
             if (expandPhoto) {
@@ -6090,7 +6093,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     /** Resting avatar size on the profile page. */
     private static final int BRINA_AVATAR_DP = 148;
-    private static final int BRINA_GLASS_AVATAR = 0x26FFFFFF;
+    private int brinaGlassAvatarColor;
 
     private Object brinaTintSource;
     private boolean brinaTintApplied;
@@ -6110,10 +6113,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         final ImageReceiver receiver = avatarImage.getImageReceiver();
         final Object source = receiver.getDrawable();
         final boolean hasImage = source != null && !(source instanceof AvatarDrawable) && receiver.hasImageLoaded();
-        if (!hasImage && avatarDrawable != null && avatarDrawable.getColor() != BRINA_GLASS_AVATAR) {
+        if (!hasImage && avatarDrawable != null && avatarDrawable.getColor() != brinaGlassAvatarColor) {
             // no photo: the initial sits on a pane of glass, and its usual color tints the page
             brinaAvatarColor = avatarDrawable.getColor();
-            avatarDrawable.setColor(BRINA_GLASS_AVATAR);
+            final org.telegram.ui.Components.glass.TintedProfileResources tint = (org.telegram.ui.Components.glass.TintedProfileResources) resourceProvider;
+            tint.setTint(brinaAvatarColor);
+            brinaGlassAvatarColor = ColorUtils.blendARGB(tint.getBackdropTop(), 0xFFFFFFFF, 0.16f);
+            avatarDrawable.setColor(brinaGlassAvatarColor);
             avatarImage.invalidate();
             brinaTintApplied = false;
         }
@@ -15420,7 +15426,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         ((UserCell) child).update(0);
                     }
                 }
-                listView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
+                if (!hasBrinaBackdrop()) {
+                    listView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
+                }
             }
             if (!isPulledDown) {
                 if (onlineTextView[1] != null) {

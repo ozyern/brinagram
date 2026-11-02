@@ -173,8 +173,8 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
             if (backgroundDrawable == null || skipBackgroundDrawing) {
                 return;
             }
-            Drawable newDrawable = getNewDrawable();
-            boolean newMotion = getNewDrawableMotion();
+            Drawable newDrawable = forcedBackground != null ? forcedBackground : getNewDrawable();
+            boolean newMotion = forcedBackground == null && getNewDrawableMotion();
             if (newDrawable != backgroundDrawable && newDrawable != null) {
                 if (Theme.isAnimatingColor()) {
                     oldBackgroundDrawable = backgroundDrawable;
