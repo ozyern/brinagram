@@ -4147,6 +4147,20 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         contentView.needBlur = true;
 
         listView = new ClippedListView(context, resourcesProvider) {
+            @Override
+            public void drawBackgroundRect(Canvas canvas, RectF rect, float topRadius, float bottomRadius, float alpha) {
+                if (!hasBrinaBackdrop() || brinaCardPaint.getShader() == null) {
+                    super.drawBackgroundRect(canvas, rect, topRadius, bottomRadius, alpha);
+                    return;
+                }
+                brinaCardRadii[0] = brinaCardRadii[1] = brinaCardRadii[2] = brinaCardRadii[3] = topRadius;
+                brinaCardRadii[4] = brinaCardRadii[5] = brinaCardRadii[6] = brinaCardRadii[7] = bottomRadius;
+                brinaCardPath.rewind();
+                brinaCardPath.addRoundRect(rect, brinaCardRadii, Path.Direction.CW);
+                brinaCardPaint.setAlpha((int) (0xFF * alpha));
+                canvas.drawPath(brinaCardPath, brinaCardPaint);
+            }
+
 
             private VelocityTracker velocityTracker;
 
@@ -6086,20 +6100,33 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         // the larger avatar pushes the name down by the difference in size
         final int extra = BRINA_AVATAR_DP - 96;
         if (getActionsExtraHeight() == 0) {
-            return dp(168f + extra);
+            return dp(174f + extra);
         }
-        return dp(152f + extra);
+        return dp(158f + extra);
     }
 
     /** Resting avatar size on the profile page. */
     private static final int BRINA_AVATAR_DP = 148;
+    /** How much larger the name is drawn under the full-size avatar than in the collapsed bar. */
+    private static final float BRINA_NAME_GROWTH = 0.25f;
+    /** Status line's distance below its collapsed place, clear of the larger name. */
+    private static final int BRINA_ONLINE_GAP_DP = 17;
     private int brinaGlassAvatarColor;
 
     private Object brinaTintSource;
     private boolean brinaTintApplied;
     private int brinaAvatarColor;
     private int brinaBackdropHeight;
+    private int brinaBackdropListTop;
     private final Paint brinaBackdropPaint = new Paint();
+    private final Paint brinaCardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path brinaCardPath = new Path();
+    private final float[] brinaCardRadii = new float[8];
+
+    /** Cells that paint their own background would hide the gradient of the card they sit on. */
+    private int brinaCellBackground() {
+        return hasBrinaBackdrop() ? 0 : getThemedColor(Theme.key_windowBackgroundWhite);
+    }
 
     private boolean hasBrinaBackdrop() {
         return resourceProvider instanceof org.telegram.ui.Components.glass.TintedProfileResources && Theme.isCurrentThemeDark();
@@ -6125,7 +6152,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
         final Object tintSource = hasImage ? source : avatarDrawable;
         final int height = listView.getMeasuredHeight();
-        if (brinaTintApplied && tintSource == brinaTintSource && height == brinaBackdropHeight) {
+        final int listTop = listView.getTop();
+        if (brinaTintApplied && tintSource == brinaTintSource && height == brinaBackdropHeight && listTop == brinaBackdropListTop) {
             return;
         }
         int color = hasImage ? getAverageColor(receiver) : brinaAvatarColor;
@@ -6134,13 +6162,17 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
         brinaTintSource = tintSource;
         brinaBackdropHeight = height;
+        brinaBackdropListTop = listTop;
         brinaTintApplied = true;
         final org.telegram.ui.Components.glass.TintedProfileResources resources = (org.telegram.ui.Components.glass.TintedProfileResources) resourceProvider;
         resources.setTint(color);
-        listView.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-            new int[] {resources.getBackdropTop(), resources.getBackdropBottom()}));
-        brinaBackdropPaint.setShader(new LinearGradient(0, 0, 0, Math.max(1, height),
-            resources.getBackdropTop(), resources.getBackdropBottom(), Shader.TileMode.CLAMP));
+        final float width = listView.getMeasuredWidth();
+        final float screenHeight = Math.max(1, listTop + height);
+        final int top = resources.getBackdropTop(), bottom = resources.getBackdropBottom();
+        listView.setBackground(new org.telegram.ui.Components.glass.ProfileBackdrop.Fill(
+            org.telegram.ui.Components.glass.ProfileBackdrop.shader(top, bottom, width, screenHeight, listTop)));
+        brinaBackdropPaint.setShader(org.telegram.ui.Components.glass.ProfileBackdrop.shader(top, bottom, width, screenHeight, 0));
+        brinaCardPaint.setShader(org.telegram.ui.Components.glass.ProfileBackdrop.shader(resources.getCardTop(), resources.getCardBottom(), width, screenHeight, listTop));
         listView.invalidate();
     }
 
@@ -6499,8 +6531,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         onlineTextView[1].setTextColor(ColorUtils.blendARGB(applyPeerColor(statusColor, true, online), 0xB3FFFFFF, value));
         if (extraHeight > getHeaderOnlyExtraHeight()) {
             nameTextView[1].setPivotY(AndroidUtilities.lerp(0, nameTextView[1].getMeasuredHeight(), value));
-            nameTextView[1].setScaleX(AndroidUtilities.lerp(1f + 0.12f * diff, 1.38f, value));
-            nameTextView[1].setScaleY(AndroidUtilities.lerp(1f + 0.12f * diff, 1.38f, value));
+            nameTextView[1].setScaleX(AndroidUtilities.lerp(1f + BRINA_NAME_GROWTH * diff, 1.38f, value));
+            nameTextView[1].setScaleY(AndroidUtilities.lerp(1f + BRINA_NAME_GROWTH * diff, 1.38f, value));
         }
         needLayoutText(Math.min(1f, diff));
 
@@ -8838,7 +8870,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (giftsView != null) {
                     giftsView.setCollapseProgress(diff, openAnimationInProgress);
                 }
-                final float nameScale = 1.0f + 0.12f * diff;
+                final float nameScale = 1.0f + BRINA_NAME_GROWTH * diff;
                 if (expandAnimator == null || !expandAnimator.isRunning()) {
                     avatarContainer.setScaleX(avatarScale);
                     avatarContainer.setScaleY(avatarScale);
@@ -8863,7 +8895,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
                 final float avatarBottom = (float) Math.floor(endNameY) + (avatarContainer.getHeight() * avatarContainer.getScaleY() + dpf2(8)) * (openAnimationInProgress ? avatarAnimationProgress : diff);
                 nameY = avatarBottom + dp(1.3f) + dp(7) * diff + titleAnimationsYDiff * (1f - avatarAnimationProgress);
-                onlineY = avatarBottom + dp(24) + (float) Math.floor(11 * AndroidUtilities.density) * diff;
+                onlineY = avatarBottom + dp(24) + (float) Math.floor(BRINA_ONLINE_GAP_DP * AndroidUtilities.density) * diff;
                 final float minimizedX = openAnimationInProgress ? (prevAvatarTranslation - dp(109) + dp(48)) : -dpf2(42 + 4);
 
                 if (showStatusButton != null) {
@@ -8960,7 +8992,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         needLayoutText(1f);
 
-        float nameScale = 1.0f + 0.12f;
+        float nameScale = 1.0f + BRINA_NAME_GROWTH;
         for (int a = 0; a < nameTextView.length; a++) {
             if (nameTextView[a] == null) {
                 continue;
@@ -13439,7 +13471,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
                 case VIEW_TYPE_LOCATION:
                     view = new ProfileLocationCell(mContext, resourcesProvider);
-                    view.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                    view.setBackgroundColor(brinaCellBackground());
                     break;
                 case VIEW_TYPE_HOURS:
                     view = new ProfileHoursCell(mContext, resourcesProvider) {
@@ -13448,7 +13480,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             return dontApplyPeerColor(color, false);
                         }
                     };
-                    view.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                    view.setBackgroundColor(brinaCellBackground());
                     break;
                 case VIEW_TYPE_VERSION:
                 default: {
@@ -13492,7 +13524,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 case VIEW_TYPE_PREMIUM_TEXT_CELL:
                 case VIEW_TYPE_STARS_TEXT_CELL:
                     view = new ProfilePremiumCell(mContext, viewType == VIEW_TYPE_PREMIUM_TEXT_CELL ? 0 : 1, resourcesProvider);
-                    view.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                    view.setBackgroundColor(brinaCellBackground());
                     break;
                 case VIEW_TYPE_CHANNEL:
                     view = new ProfileChannelCell(ProfileActivity.this) {
@@ -13513,7 +13545,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     });
                     frameLayout.addView(button, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.FILL, 18, 14, 18, 14));
                     view = frameLayout;
-                    view.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                    view.setBackgroundColor(brinaCellBackground());
                     break;
             }
             if (viewType != VIEW_TYPE_SHARED_MEDIA) {

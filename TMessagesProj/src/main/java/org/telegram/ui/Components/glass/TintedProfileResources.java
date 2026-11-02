@@ -7,25 +7,33 @@ import androidx.core.graphics.ColorUtils;
 import org.telegram.ui.ActionBar.Theme;
 
 /**
- * Colors for profile pages on dark themes: the backdrop and cards take their hue from the photo,
- * and text is white so it reads on any hue. Light themes pass through unchanged.
+ * Colors for profile pages on dark themes: a deep, muted backdrop that only hints at the photo's
+ * hue, and cards that read as a pane of glass lying on it. Text is white so it reads on any hue.
+ * Light themes pass through unchanged.
  */
 public final class TintedProfileResources implements Theme.ResourcesProvider {
+
+    /** How much white a card adds to the backdrop beneath it. */
+    private static final float CARD_LIGHT = 0.09f;
 
     private int backdropTop = 0xFF1C1C1E;
     private int backdropBottom = 0xFF000000;
     private int backdropMiddle = 0xFF0E0E0F;
+    private int cardTop = 0xFF2A2A2C;
+    private int cardBottom = 0xFF17171A;
     private int card = 0xFF1C1C1E;
 
     /** Derives the palette from the photo's average color. */
     public void setTint(int color) {
         final float[] hsv = new float[3];
         Color.colorToHSV(color | 0xFF000000, hsv);
-        final float saturation = Math.max(0.18f, Math.min(0.55f, hsv[1]));
-        backdropTop = Color.HSVToColor(new float[] {hsv[0], saturation, 0.36f});
-        backdropMiddle = Color.HSVToColor(new float[] {hsv[0], saturation, 0.2f});
-        backdropBottom = Color.HSVToColor(new float[] {hsv[0], saturation, 0.07f});
-        card = ColorUtils.blendARGB(backdropMiddle, 0xFFFFFFFF, 0.1f);
+        final float saturation = Math.max(0.08f, Math.min(0.32f, hsv[1] * 0.55f));
+        backdropTop = Color.HSVToColor(new float[] {hsv[0], saturation, 0.2f});
+        backdropMiddle = Color.HSVToColor(new float[] {hsv[0], saturation, 0.12f});
+        backdropBottom = Color.HSVToColor(new float[] {hsv[0], saturation, 0.05f});
+        cardTop = ColorUtils.blendARGB(backdropTop, 0xFFFFFFFF, CARD_LIGHT);
+        cardBottom = ColorUtils.blendARGB(backdropBottom, 0xFFFFFFFF, CARD_LIGHT);
+        card = ColorUtils.blendARGB(backdropMiddle, 0xFFFFFFFF, CARD_LIGHT);
     }
 
     public int getBackdropTop() {
@@ -34,6 +42,14 @@ public final class TintedProfileResources implements Theme.ResourcesProvider {
 
     public int getBackdropBottom() {
         return backdropBottom;
+    }
+
+    public int getCardTop() {
+        return cardTop;
+    }
+
+    public int getCardBottom() {
+        return cardBottom;
     }
 
     @Override

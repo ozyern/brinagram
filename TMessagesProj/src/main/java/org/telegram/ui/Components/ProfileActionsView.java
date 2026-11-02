@@ -327,11 +327,15 @@ public class ProfileActionsView extends View {
                     if (isCircles()) {
                         final float circleRadius = Math.min(AndroidUtilities.rectTmp.width(), AndroidUtilities.rectTmp.height()) / 2f;
                         final float circleAlpha = action.getAlpha() * alphaFraction1;
-                        circleFillPaint.setColor(Theme.multAlpha(0xFFFFFFFF, 0.14f * circleAlpha));
+                        circleFillPaint.setColor(Theme.multAlpha(0xFFFFFFFF, 0.11f * circleAlpha));
                         canvas.drawRoundRect(AndroidUtilities.rectTmp, circleRadius, circleRadius, circleFillPaint);
+                        // lit from above: a rim that is brightest along the top
+                        final float stroke = dpf2(1f);
                         circleRimPaint.setStyle(Paint.Style.STROKE);
-                        circleRimPaint.setStrokeWidth(dpf2(1f));
-                        circleRimPaint.setColor(Theme.multAlpha(0xFFFFFFFF, 0.2f * circleAlpha));
+                        circleRimPaint.setStrokeWidth(stroke);
+                        circleRimPaint.setShader(new android.graphics.LinearGradient(0, AndroidUtilities.rectTmp.top, 0, AndroidUtilities.rectTmp.bottom,
+                            Theme.multAlpha(0xFFFFFFFF, 0.34f * circleAlpha), Theme.multAlpha(0xFFFFFFFF, 0.07f * circleAlpha), Shader.TileMode.CLAMP));
+                        AndroidUtilities.rectTmp.inset(stroke / 2f, stroke / 2f);
                         canvas.drawRoundRect(AndroidUtilities.rectTmp, circleRadius, circleRadius, circleRimPaint);
                         continue;
                     }
