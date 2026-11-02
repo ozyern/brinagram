@@ -2,7 +2,7 @@
 
 **Your messages, short n' sweet.**
 
-A liquid glass messenger for Android, made with love for Sabrina Carpenter.
+A liquid glass messenger for Android, inspired by Sabrina Carpenter.
 
 Brinagram is an unofficial fan project. It is not affiliated with or endorsed by Sabrina Carpenter or Telegram.
 
