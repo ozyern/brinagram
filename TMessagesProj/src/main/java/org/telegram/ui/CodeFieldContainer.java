@@ -44,7 +44,7 @@ public class CodeFieldContainer extends LinearLayout {
     }
 
     private static boolean usesDots(int type) {
-        return type != LoginActivity.AUTH_TYPE_MISSED_CALL && type != 3;
+        return type != LoginActivity.AUTH_TYPE_FLASH_CALL;
     }
 
     /** A wrong code: the dots drop out of their slots. */
@@ -237,7 +237,7 @@ public class CodeFieldContainer extends LinearLayout {
                 int gapSize;
                 if (dots != null) {
                     width = Math.round(AndroidUtilities.displaySize.x * PinLayout.DOT_STEP / AndroidUtilities.density);
-                    height = 42;
+                    height = currentType == LoginActivity.AUTH_TYPE_MISSED_CALL ? 34 : 42;
                     gapSize = 0;
                 } else if (currentType == TYPE_PASSCODE) {
                     width = 42;

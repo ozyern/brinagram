@@ -143,6 +143,9 @@ public class CustomPhoneKeyboardView extends ViewGroup {
             @SuppressLint("ClickableViewAccessibility")
             @Override
             public boolean onTouchEvent(MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN && !isEnabled()) {
+                    return false; // hidden: there is nothing to delete
+                }
                 if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
                     if (postedLongClick || runningLongClick) {
                         postedLongClick = false;
@@ -185,6 +188,50 @@ public class CustomPhoneKeyboardView extends ViewGroup {
         pinLayout = value;
         updateColors();
         requestLayout();
+    }
+
+    private boolean backButtonShown = true;
+    private final android.view.ViewTreeObserver.OnPreDrawListener backButtonUpdater = () -> {
+        updateBackButton();
+        return true;
+    };
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        getViewTreeObserver().addOnPreDrawListener(backButtonUpdater);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        getViewTreeObserver().removeOnPreDrawListener(backButtonUpdater);
+    }
+
+    /** In the PIN layout the delete key only shows when there is something to delete. */
+    private void updateBackButton() {
+        final boolean show = !isPinLayoutActive() || hasSomethingToDelete();
+        if (show != backButtonShown) {
+            backButtonShown = show;
+            backButton.setEnabled(show);
+            backButton.animate().cancel();
+            backButton.animate().alpha(show ? 1f : 0f).setDuration(160).start();
+        }
+    }
+
+    private boolean hasSomethingToDelete() {
+        if (dispatchBackWhenEmpty) {
+            return true; // deleting past the start moves back to the previous field
+        }
+        final View focus = viewToFindFocus != null ? viewToFindFocus.findFocus() : null;
+        final EditText field = focus instanceof EditText ? (EditText) focus : editText;
+        if (field == null) {
+            return false;
+        }
+        if (field.getParent() instanceof org.telegram.ui.CodeFieldContainer) {
+            return !((org.telegram.ui.CodeFieldContainer) field.getParent()).getCode().isEmpty();
+        }
+        return field.length() > 0;
     }
 
     private boolean isPinLayoutActive() {

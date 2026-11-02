@@ -536,17 +536,17 @@ public class TwoStepVerificationSetupActivity extends BaseFragment {
                         int frameBottom;
                         if (keyboardView.getVisibility() != View.GONE && measureKeyboardHeight() >= AndroidUtilities.dp(20)) {
                             if (isCustomKeyboardVisible()) {
-                                frameLayout.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight() - AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP) + measureKeyboardHeight());
+                                frameLayout.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight() - AndroidUtilities.dp(CustomPhoneKeyboardView.getPinHeightDp()) + measureKeyboardHeight());
                             } else {
                                 frameLayout.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight());
                             }
                         } else if (keyboardView.getVisibility() != View.GONE) {
-                            frameLayout.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight() - AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP));
+                            frameLayout.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight() - AndroidUtilities.dp(CustomPhoneKeyboardView.getPinHeightDp()));
                         } else {
                             frameLayout.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight());
                         }
 
-                        keyboardView.layout(0, frameBottom, getMeasuredWidth(), frameBottom + AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP));
+                        keyboardView.layout(0, frameBottom, getMeasuredWidth(), frameBottom + AndroidUtilities.dp(CustomPhoneKeyboardView.getPinHeightDp()));
                     }
 
                     @Override
@@ -556,10 +556,10 @@ public class TwoStepVerificationSetupActivity extends BaseFragment {
 
                         int frameHeight = height;
                         if (keyboardView.getVisibility() != View.GONE && measureKeyboardHeight() < AndroidUtilities.dp(20)) {
-                            frameHeight -= AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP);
+                            frameHeight -= AndroidUtilities.dp(CustomPhoneKeyboardView.getPinHeightDp());
                         }
                         frameLayout.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(frameHeight, MeasureSpec.EXACTLY));
-                        keyboardView.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP), MeasureSpec.EXACTLY));
+                        keyboardView.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(CustomPhoneKeyboardView.getPinHeightDp()), MeasureSpec.EXACTLY));
                     }
                 };
                 keyboardFrameLayout.addView(frameLayout);
@@ -846,6 +846,7 @@ public class TwoStepVerificationSetupActivity extends BaseFragment {
                 outlineTextSecondRow.setVisibility(View.GONE);
 
                 keyboardView = new CustomPhoneKeyboardView(context);
+                keyboardView.setPinLayout(true);
                 keyboardView.setVisibility(View.GONE);
                 keyboardFrameLayout.addView(keyboardView);
 

@@ -841,11 +841,21 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         return /*AndroidUtilities.displaySize.x > AndroidUtilities.displaySize.y || AndroidUtilities.isTablet() || */ AndroidUtilities.isAccessibilityTouchExplorationEnabled();
     }
 
-    /** The code entry pages use the PIN layout: a taller keypad of round keys. */
+    /** Height the phone number form needs above the keypad; shorter screens keep the compact keypad. */
+    private static final int PHONE_FORM_MIN_HEIGHT_DP = 330;
+
+    /** Every page with the custom keypad uses the PIN layout: a taller keypad of round keys. */
     private boolean isPinPage() {
         final SlideView view = views != null ? views[currentViewNum] : null;
-        return view instanceof LoginActivitySmsView && ((LoginActivitySmsView) view).usesPinLayout()
-            && org.telegram.ui.Components.glass.PinLayout.applies(getParentActivity() != null ? getParentActivity().getResources().getConfiguration() : ApplicationLoader.applicationContext.getResources().getConfiguration());
+        if (view == null || !view.hasCustomKeyboard()
+            || !org.telegram.ui.Components.glass.PinLayout.applies(getParentActivity() != null ? getParentActivity().getResources().getConfiguration() : ApplicationLoader.applicationContext.getResources().getConfiguration())) {
+            return false;
+        }
+        if (currentViewNum == VIEW_PHONE_INPUT) {
+            final int screenHeight = org.telegram.ui.Components.glass.PinLayout.estimatedScreenHeight();
+            return screenHeight - AndroidUtilities.dp(CustomPhoneKeyboardView.getPinHeightDp()) >= AndroidUtilities.dp(PHONE_FORM_MIN_HEIGHT_DP);
+        }
+        return true;
     }
 
     private int keyboardHeightDp() {
@@ -3711,6 +3721,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 missedCallPhoneIcon.setImageResource(R.drawable.login_phone1);
 
                 addView(frameLayout, LayoutHelper.createLinear(64, 64, Gravity.CENTER_HORIZONTAL, 0, 16, 0, 0));
+                frameLayout.setVisibility(GONE); // the taller keypad leaves no room for artwork
                 addView(titleTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 8, 0, 0));
 
                 missedCallDescriptionSubtitle = new TextView(context);
@@ -6357,6 +6368,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             inboxFrameLayout.addView(inboxImageView, LayoutHelper.createFrame(120, 120, Gravity.CENTER_HORIZONTAL));
             inboxFrameLayout.setVisibility(AndroidUtilities.isSmallScreen() || (AndroidUtilities.displaySize.x > AndroidUtilities.displaySize.y && !AndroidUtilities.isTablet()) ? GONE : VISIBLE);
             addView(inboxFrameLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
+            inboxFrameLayout.setVisibility(GONE); // the taller keypad leaves no room for artwork
 
             titleView = new TextView(context);
             titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
@@ -7161,6 +7173,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             inboxFrameLayout.addView(inboxImageView, LayoutHelper.createFrame(120, 120, Gravity.CENTER_HORIZONTAL));
             inboxFrameLayout.setVisibility(AndroidUtilities.isSmallScreen() || (AndroidUtilities.displaySize.x > AndroidUtilities.displaySize.y && !AndroidUtilities.isTablet()) ? GONE : VISIBLE);
             addView(inboxFrameLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
+            inboxFrameLayout.setVisibility(GONE); // the taller keypad leaves no room for artwork
 
             titleView = new TextView(context);
             titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26); // BrinaGram: large title
