@@ -46,6 +46,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ScrollView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -456,9 +457,61 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
         checkContinueText();
         justCreated = true;
 
+        createWelcomePage(context, themeFrameLayout);
         updateColors(false);
 
         return fragmentView;
+    }
+
+    /**
+     * One quiet page: the name, the quote in a gradient, and the button. The swipe pages and their
+     * GL icons stay hidden; a hidden TextureView never gets a surface, so GL never starts.
+     */
+    private void createWelcomePage(Context context, View themeButton) {
+        frameLayout2.setVisibility(View.GONE);
+        viewPager.setVisibility(View.GONE);
+        bottomPages.setVisibility(View.GONE);
+        auroraView.setVisibility(View.GONE);
+        themeButton.setVisibility(View.GONE);
+
+        final LinearLayout welcome = new LinearLayout(context);
+        welcome.setOrientation(LinearLayout.VERTICAL);
+
+        final TextView nameView = new TextView(context);
+        nameView.setText(BrinaBrand.APP_NAME);
+        nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 38);
+        nameView.setTypeface(AndroidUtilities.bold());
+        nameView.setTextColor(0xFF14141A);
+        welcome.addView(nameView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        final TextView quoteView = new TextView(context) {
+            @Override
+            protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+                super.onSizeChanged(w, h, oldw, oldh);
+                getPaint().setShader(new android.graphics.LinearGradient(0, 0, w * 0.8f, 0,
+                    new int[] {0xFFB02A8F, 0xFFE8467C, 0xFFE8913F}, null, android.graphics.Shader.TileMode.CLAMP));
+            }
+        };
+        quoteView.setText(LocaleController.getString(R.string.BrinaWelcomeQuote));
+        quoteView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 38);
+        quoteView.setTypeface(AndroidUtilities.bold());
+        quoteView.setTextColor(0xFFE8467C);
+        quoteView.setLineSpacing(dp(4), 1f);
+        welcome.addView(quoteView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 6, 0, 0));
+
+        frameContainerView.addView(welcome, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT, 28, 120, 28, 0));
+
+        // the lines rise into place one after the other
+        final View[] lines = {nameView, quoteView, startMessagingButton};
+        for (int i = 0; i < lines.length; i++) {
+            lines[i].setAlpha(0f);
+            lines[i].setTranslationY(dp(22));
+            lines[i].animate().alpha(1f).translationY(0f)
+                .setStartDelay(80L + 110L * i)
+                .setDuration(620)
+                .setInterpolator(org.telegram.ui.Components.CubicBezierInterpolator.EASE_OUT_QUINT)
+                .start();
+        }
     }
 
     @SuppressLint("SourceLockedOrientationActivity")
@@ -985,13 +1038,13 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
     private void updateColors(boolean fromTheme) {
         // BrinaGram: champagne-gold pill matching the medallion
-        startMessagingButtonBackground.setDark(Theme.isCurrentThemeDark());
+        startMessagingButtonBackground.setDark(false);
         auroraView.setDark(Theme.isCurrentThemeDark());
         logoDrawable.setColorFilter(Theme.multAlpha(getThemedColor(Theme.key_actionBarDefaultTitle), 0.9f), PorterDuff.Mode.MULTIPLY);
-        fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        switchLanguageTextView.setTextColor(Theme.isCurrentThemeDark() ? 0xFFD8B07A : 0xFFA8763F);
-        startMessagingButton.setTextColor(Theme.isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF1C1C1E);
-        startMessagingButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(26), Color.TRANSPARENT, 0x22FFFFFF));
+        fragmentView.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[] {0xFFFFF9F2, 0xFFFFEDF1, 0xFFFFD3E2}));
+        switchLanguageTextView.setTextColor(0xFFA8763F);
+        startMessagingButton.setTextColor(0xFF14141A);
+        startMessagingButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(26), Color.TRANSPARENT, 0x14000000));
         darkThemeDrawable.setColorFilter(new PorterDuffColorFilter(Theme.isCurrentThemeDark() ? 0xFFD8B07A : 0xFFA8763F, PorterDuff.Mode.SRC_IN));
         bottomPages.invalidate();
         if (fromTheme) {
@@ -1018,7 +1071,6 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public boolean isLightStatusBar() {
-        int color = Theme.getColor(Theme.key_windowBackgroundWhite, null, true);
-        return ColorUtils.calculateLuminance(color) > 0.7f;
+        return true; // the page is bright on every theme
     }
 }
