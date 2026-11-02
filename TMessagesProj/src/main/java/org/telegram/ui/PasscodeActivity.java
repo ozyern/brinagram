@@ -220,17 +220,17 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
                 int frameBottom;
                 if (keyboardView.getVisibility() != View.GONE && measureKeyboardHeight() >= dp(20)) {
                     if (isCustomKeyboardVisible()) {
-                        fragmentContentView.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight() - dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP) + measureKeyboardHeight());
+                        fragmentContentView.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight() - dp(CustomPhoneKeyboardView.getPinHeightDp()) + measureKeyboardHeight());
                     } else {
                         fragmentContentView.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight());
                     }
                 } else if (keyboardView.getVisibility() != View.GONE) {
-                    fragmentContentView.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight() - dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP));
+                    fragmentContentView.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight() - dp(CustomPhoneKeyboardView.getPinHeightDp()));
                 } else {
                     fragmentContentView.layout(0, 0, getMeasuredWidth(), frameBottom = getMeasuredHeight());
                 }
 
-                keyboardView.layout(0, frameBottom, getMeasuredWidth(), frameBottom + dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP));
+                keyboardView.layout(0, frameBottom, getMeasuredWidth(), frameBottom + dp(CustomPhoneKeyboardView.getPinHeightDp()));
                 notifyHeightChanged();
             }
 
@@ -241,10 +241,10 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
 
                 int frameHeight = height;
                 if (keyboardView.getVisibility() != View.GONE && measureKeyboardHeight() < dp(20)) {
-                    frameHeight -= dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP);
+                    frameHeight -= dp(CustomPhoneKeyboardView.getPinHeightDp());
                 }
                 fragmentContentView.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(frameHeight, MeasureSpec.EXACTLY));
-                keyboardView.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP), MeasureSpec.EXACTLY));
+                keyboardView.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(CustomPhoneKeyboardView.getPinHeightDp()), MeasureSpec.EXACTLY));
             }
         };
         contentView.setDelegate((keyboardHeight, isWidthGreater) -> {
@@ -257,8 +257,9 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
         contentView.addView(fragmentContentView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 0, 1f));
 
         keyboardView = new CustomPhoneKeyboardView(context);
+        keyboardView.setPinLayout(true);
         keyboardView.setVisibility(isCustomKeyboardVisible() ? View.VISIBLE : View.GONE);
-        contentView.addView(keyboardView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP));
+        contentView.addView(keyboardView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, CustomPhoneKeyboardView.getPinHeightDp()));
 
         switch (type) {
             case TYPE_MANAGE_CODE_SETTINGS: {
@@ -715,7 +716,7 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
         if (!animate) {
             keyboardView.setVisibility(visible ? View.VISIBLE : View.GONE);
             keyboardView.setAlpha(visible ? 1 : 0);
-            keyboardView.setTranslationY(visible ? 0 : dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP));
+            keyboardView.setTranslationY(visible ? 0 : dp(CustomPhoneKeyboardView.getPinHeightDp()));
             fragmentView.requestLayout();
         } else {
             ValueAnimator animator = ValueAnimator.ofFloat(visible ? 0 : 1, visible ? 1 : 0).setDuration(150);
@@ -723,7 +724,7 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
             animator.addUpdateListener(animation -> {
                 float val = (float) animation.getAnimatedValue();
                 keyboardView.setAlpha(val);
-                keyboardView.setTranslationY((1f - val) * dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP) * 0.75f);
+                keyboardView.setTranslationY((1f - val) * dp(CustomPhoneKeyboardView.getPinHeightDp()) * 0.75f);
                 fragmentView.requestLayout();
             });
             animator.addListener(new AnimatorListenerAdapter() {

@@ -124,6 +124,9 @@ public class CodeNumberField extends EditTextBoldCursor {
 
     public void animateErrorProgress(float newProgress) {
         animateSpring(errorSpringAnimation, newProgress * SPRING_MULTIPLIER);
+        if (newProgress > 0f && getParent() instanceof CodeFieldContainer) {
+            ((CodeFieldContainer) getParent()).onFieldError();
+        }
     }
 
     public float getSuccessProgress() {

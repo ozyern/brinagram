@@ -39,6 +39,9 @@ public class CustomPhoneKeyboardView extends ViewGroup {
 
     private View viewToFindFocus;
 
+    /** Round keys in the proportions of {@link org.telegram.ui.Components.glass.PinLayout}. */
+    private boolean pinLayout;
+
     private boolean dispatchBackWhenEmpty;
     private boolean runningLongClick;
     private final Runnable onBackButton = () -> {
@@ -162,9 +165,34 @@ public class CustomPhoneKeyboardView extends ViewGroup {
         for (int a = 0; a < views.length; a++) {
             final View v = views[a];
             if (v == null) continue;
-            ScaleStateListAnimator.apply(v, -0.07f, 1.4f); // glass swells under the finger
+            ScaleStateListAnimator.apply(v, -0.1f, 1.4f); // glass swells under the finger
             v.setBackground(getButtonDrawable(a));
         }
+    }
+
+    /** The keypad's height, in dp, for the PIN layout on this screen. */
+    public static int getPinHeightDp() {
+        final int px = org.telegram.ui.Components.glass.PinLayout.keypadHeight(
+            org.telegram.messenger.AndroidUtilities.displaySize.x,
+            org.telegram.ui.Components.glass.PinLayout.estimatedScreenHeight());
+        return (int) Math.ceil(px / org.telegram.messenger.AndroidUtilities.density);
+    }
+
+    public void setPinLayout(boolean value) {
+        if (pinLayout == value) {
+            return;
+        }
+        pinLayout = value;
+        updateColors();
+        requestLayout();
+    }
+
+    private boolean isPinLayoutActive() {
+        return pinLayout && org.telegram.ui.Components.glass.PinLayout.applies(getResources().getConfiguration());
+    }
+
+    private int pinKeySize() {
+        return (int) (org.telegram.ui.Components.glass.PinLayout.KEY_SIZE * getWidth());
     }
 
     @Override
@@ -223,6 +251,22 @@ public class CustomPhoneKeyboardView extends ViewGroup {
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        if (isPinLayoutActive()) {
+            // rows are placed from the screen's bottom, which this view's bottom sits on
+            final int screenHeight = getRootView().getHeight() > 0 ? getRootView().getHeight() : org.telegram.ui.Components.glass.PinLayout.estimatedScreenHeight();
+            final int keySize = pinKeySize();
+            final int rowStep = org.telegram.ui.Components.glass.PinLayout.rowStep(getWidth(), screenHeight);
+            final int columnStep = (int) (org.telegram.ui.Components.glass.PinLayout.COLUMN_STEP * getWidth());
+            final float lastRowFromBottom = (1f - org.telegram.ui.Components.glass.PinLayout.FIRST_ROW_Y - 3 * org.telegram.ui.Components.glass.PinLayout.ROW_STEP) * screenHeight;
+            final int lastRowCenter = (int) (getHeight() - lastRowFromBottom);
+            for (int i = 0; i < views.length; i++) {
+                if (views[i] == null) continue;
+                final int cx = getWidth() / 2 + (i % 3 - 1) * columnStep;
+                final int cy = lastRowCenter - (3 - i / 3) * rowStep;
+                views[i].layout(cx - keySize / 2, cy - keySize / 2, cx + keySize / 2, cy + keySize / 2);
+            }
+            return;
+        }
         int btnWidth = (getWidth() - dp(SIDE_PADDING * 2 + BUTTON_PADDING * 2)) / 3;
         int btnHeight = (getHeight() - dp(SIDE_PADDING * 3 + BUTTON_PADDING * 2)) / 4;
 
@@ -240,6 +284,16 @@ public class CustomPhoneKeyboardView extends ViewGroup {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.getSize(heightMeasureSpec));
 
+        if (isPinLayoutActive()) {
+            final int keySpec = MeasureSpec.makeMeasureSpec((int) (org.telegram.ui.Components.glass.PinLayout.KEY_SIZE * getMeasuredWidth()), MeasureSpec.EXACTLY);
+            for (View v : views) {
+                if (v != null) {
+                    v.measure(keySpec, keySpec);
+                }
+            }
+            return;
+        }
+
         int btnWidth = (getWidth() - dp(SIDE_PADDING * 2 + BUTTON_PADDING * 2)) / 3;
         int btnHeight = (getHeight() - dp(SIDE_PADDING * 3 + BUTTON_PADDING * 2)) / 4;
 
@@ -251,11 +305,14 @@ public class CustomPhoneKeyboardView extends ViewGroup {
     }
 
     /** BrinaGram: every key is a pane of liquid glass; the delete key has no plate. */
-    private static Drawable getButtonDrawable(int index) {
+    private Drawable getButtonDrawable(int index) {
         if (index == 11) {
-            return Theme.createSimpleSelectorRoundRectDrawable(dp(28), 0, ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), 24));
+            return Theme.createSimpleSelectorRoundRectDrawable(dp(pinLayout ? 40 : 28), 0, ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), 24));
         }
         final boolean dark = ColorUtils.calculateLuminance(Theme.getColor(Theme.key_windowBackgroundWhite)) < 0.5f;
+        if (pinLayout && org.telegram.ui.Components.glass.PinLayout.applies(getResources().getConfiguration())) {
+            return new org.telegram.ui.Components.glass.PinKeyDrawable(dark);
+        }
         return new android.graphics.drawable.InsetDrawable(
             new org.telegram.ui.Components.glass.GlassPillDrawable().setDark(dark),
             dp(2), dp(2), dp(2), dp(2));
@@ -269,6 +326,7 @@ public class CustomPhoneKeyboardView extends ViewGroup {
                 v.setBackground(getButtonDrawable(a));
 
                 if (v instanceof NumberButtonView) {
+                    ((NumberButtonView) v).setPinStyle(pinLayout && org.telegram.ui.Components.glass.PinLayout.applies(getResources().getConfiguration()));
                     ((NumberButtonView) v).updateColors();
                 }
             }
@@ -281,6 +339,15 @@ public class CustomPhoneKeyboardView extends ViewGroup {
         private final String mNumber;
         private final String mSymbols;
         private final Rect rect = new Rect();
+        private boolean pinStyle;
+
+        /** The digit alone, medium weight and larger, with no letters beneath it. */
+        private void setPinStyle(boolean value) {
+            pinStyle = value;
+            numberTextPaint.setTextSize(dp(value ? org.telegram.ui.Components.glass.PinLayout.DIGIT_SP : 26));
+            numberTextPaint.setTypeface(value ? org.telegram.messenger.AndroidUtilities.bold() : android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
+            invalidate();
+        }
 
         public NumberButtonView(Context context, String number, String symbols) {
             super(context);
@@ -312,7 +379,7 @@ public class CustomPhoneKeyboardView extends ViewGroup {
             float textOffsetSymbols = rect.height() / 2f;
 
             // number centered, letters beneath it (or the number alone, centered)
-            final boolean hasSymbols = mSymbols.length() > 0;
+            final boolean hasSymbols = !pinStyle && mSymbols.length() > 0;
             final float numberY = getHeight() / 2f + textOffsetNumber - (hasSymbols ? dp(5) : 0);
             canvas.drawText(mNumber, getWidth() / 2f - numberWidth / 2f, numberY, numberTextPaint);
             if (hasSymbols) {

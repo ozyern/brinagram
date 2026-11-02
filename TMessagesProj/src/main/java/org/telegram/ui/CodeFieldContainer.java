@@ -19,6 +19,8 @@ import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.glass.PinDots;
+import org.telegram.ui.Components.glass.PinLayout;
 
 public class CodeFieldContainer extends LinearLayout {
     public final static int TYPE_PASSCODE = 10;
@@ -31,10 +33,47 @@ public class CodeFieldContainer extends LinearLayout {
 
     public CodeNumberField[] codeField;
 
+    /** Set when the code is shown as a row of dots rather than digits in boxes. */
+    private PinDots dots;
+    private boolean[] dotsFilled;
+
     public CodeFieldContainer(Context context) {
         super(context);
         paint.setStyle(Paint.Style.STROKE);
         setOrientation(HORIZONTAL);
+    }
+
+    private static boolean usesDots(int type) {
+        return type != LoginActivity.AUTH_TYPE_MISSED_CALL && type != 3;
+    }
+
+    /** A wrong code: the dots drop out of their slots. */
+    void onFieldError() {
+        if (dots != null) {
+            dots.fall();
+        }
+    }
+
+    @Override
+    public void setTranslationX(float translationX) {
+        // dots answer a wrong code by falling: the shake callers ask for stays out of it
+        super.setTranslationX(dots != null ? 0f : translationX);
+    }
+
+    private void drawDots(Canvas canvas) {
+        boolean success = false;
+        for (int i = 0; i < codeField.length; i++) {
+            dotsFilled[i] = codeField[i].length() > 0;
+            success |= codeField[i].getSuccessProgress() > 0f;
+        }
+        dots.update(dotsFilled);
+        final int textColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlackText);
+        final float radius = AndroidUtilities.displaySize.x * PinLayout.DOT_RADIUS;
+        for (int i = 0; i < codeField.length; i++) {
+            final View child = codeField[i];
+            final int color = success ? ColorUtils.blendARGB(textColor, Theme.getColor(Theme.key_checkbox), codeField[i].getSuccessProgress()) : textColor;
+            dots.draw(canvas, i, (child.getLeft() + child.getRight()) / 2f, (child.getTop() + child.getBottom()) / 2f, radius, color);
+        }
     }
 
     @Override
@@ -45,6 +84,10 @@ public class CodeFieldContainer extends LinearLayout {
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
+        if (dots != null && codeField != null) {
+            drawDots(canvas);
+            return; // the fields keep focus and input, but are never drawn
+        }
         for (int i = 0; i < getChildCount(); i++) {
             View child = getChildAt(i);
             if (child instanceof CodeNumberField) {
@@ -115,6 +158,14 @@ public class CodeFieldContainer extends LinearLayout {
                 }
             }
             codeField = new CodeNumberField[length];
+            if (usesDots(currentType)) {
+                dots = new PinDots(this);
+                dots.setCount(length);
+                dotsFilled = new boolean[length];
+                setClipChildren(false);
+            } else {
+                dots = null;
+            }
             for (int a = 0; a < length; a++) {
                 final int num = a;
                 codeField[a] = new CodeNumberField(getContext()) {
@@ -184,7 +235,11 @@ public class CodeFieldContainer extends LinearLayout {
                 int width;
                 int height;
                 int gapSize;
-                if (currentType == TYPE_PASSCODE) {
+                if (dots != null) {
+                    width = Math.round(AndroidUtilities.displaySize.x * PinLayout.DOT_STEP / AndroidUtilities.density);
+                    height = 42;
+                    gapSize = 0;
+                } else if (currentType == TYPE_PASSCODE) {
                     width = 42;
                     height = 47;
                     gapSize = 10;

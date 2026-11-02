@@ -114,12 +114,33 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
     private final int BUTTON_Y_MARGIN = 16;
     private final int BUTTON_SIZE = 60;
 
+    private org.telegram.ui.Components.glass.PinDotsView pinDotsView;
+    private boolean showingPinError;
+
+    /** Dots follow the digits; the message stays, and the delete key only shows with something to delete. */
     private void checkTitle() {
-        final boolean isEmpty = passwordEditText2 == null || passwordEditText2.length() > 0;
-        if (numbersTitleContainer != null) {
-            numbersTitleContainer.animate().cancel();
-            numbersTitleContainer.animate().alpha(isEmpty ? 0f : 1f).scaleX(isEmpty ? .8f : 1f).scaleY(isEmpty ? .8f : 1f).setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT).setDuration(320).start();
+        final int length = passwordEditText2 == null ? 0 : passwordEditText2.length();
+        if (pinDotsView != null) {
+            pinDotsView.getDots().setFilledCount(length);
         }
+        if (length > 0 && showingPinError) {
+            showingPinError = false;
+            checkFingerprintButton();
+        }
+        if (numberFrameLayouts != null && numberFrameLayouts.size() > 11) {
+            final View delete = numberFrameLayouts.get(11);
+            delete.setEnabled(length > 0);
+            delete.animate().cancel();
+            delete.animate().alpha(length > 0 ? 1f : 0f).setDuration(160).start();
+        }
+    }
+
+    private boolean isPinExact() {
+        return SharedConfig.passcodeType == SharedConfig.PASSCODE_TYPE_PIN && org.telegram.ui.Components.glass.PinLayout.applies(getContext().getResources().getConfiguration());
+    }
+
+    private float lockScale() {
+        return isPinExact() ? org.telegram.ui.Components.glass.PinLayout.LOCK_SCALE : 1f;
     }
 
     private class AnimatingTextView extends FrameLayout {
@@ -160,6 +181,10 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 textView.setPivotY(AndroidUtilities.dp(25));
                 addView(textView, LayoutHelper.createFrame(50, 50, Gravity.TOP | Gravity.LEFT));
                 dotTextViews.add(textView);
+            }
+            // only the digits' bookkeeping is used now: what shows is the row of dots
+            for (int a = 0; a < getChildCount(); a++) {
+                getChildAt(a).setVisibility(INVISIBLE);
             }
         }
 
@@ -374,6 +399,9 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             if (currentAnimation != null) {
                 currentAnimation.cancel();
                 currentAnimation = null;
+            }
+            if (animated && pinDotsView != null) {
+                pinDotsView.getDots().fall();
             }
             stringBuilder.delete(0, stringBuilder.length());
             if (animated) {
@@ -799,16 +827,20 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         subtitleView.setTextColor(0xFFFFFFFF);
         subtitleView.setText(subtitle);
         numbersTitleContainer.addView(subtitleView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 23, 0, 0));
+        subtitleView.setGravity(Gravity.CENTER_HORIZONTAL);
+
+        pinDotsView = new org.telegram.ui.Components.glass.PinDotsView(context, 4, AndroidUtilities.displaySize.x);
+        numbersFrameLayout.addView(pinDotsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT));
 
         numberFrameLayouts = new ArrayList<>(10);
         for (int a = 0; a < 12; a++) {
             PasscodeButton frameLayout = new PasscodeButton(context);
-            ScaleStateListAnimator.apply(frameLayout, .15f, 1.5f);
+            ScaleStateListAnimator.apply(frameLayout, -0.1f, 1.4f); // glass swells under the finger
             frameLayout.setTag(a);
             if (a == 11) {
-                frameLayout.setBackground(createGlass(frameLayout));
                 frameLayout.setForeground(Theme.createSimpleSelectorRoundRectDrawable(dp(30), 0, 0x26ffffff));
                 frameLayout.setImage(R.drawable.filled_clear);
+                frameLayout.setAlpha(0f); // appears with the first digit
                 frameLayout.setOnLongClickListener(v -> {
                     passwordEditText.setText("");
                     passwordEditText2.eraseAllCharacters(true);
@@ -822,13 +854,13 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             } else if (a == 10) {
                 fingerprintView = frameLayout;
                 frameLayout.setBackground(createGlass(frameLayout));
-                frameLayout.setForeground(Theme.createSimpleSelectorRoundRectDrawable(dp(30), 0, 0x26ffffff));
+                frameLayout.setForeground(new org.telegram.ui.Components.glass.PinKeyDrawable(true).lightOnly());
                 frameLayout.setContentDescription(LocaleController.getString(R.string.AccDescrFingerprint));
                 frameLayout.setImage(R.drawable.fingerprint);
                 setNextFocus(frameLayout, R.id.passcode_btn_1);
             } else {
                 frameLayout.setBackground(createGlass(frameLayout));
-                frameLayout.setForeground(Theme.createSimpleSelectorRoundRectDrawable(dp(30), 0, 0x26ffffff));
+                frameLayout.setForeground(new org.telegram.ui.Components.glass.PinKeyDrawable(true).lightOnly());
                 frameLayout.setContentDescription(a + "");
                 frameLayout.setNum(a);
                 if (a == 0) {
@@ -1014,7 +1046,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 .setStrokeWidth(dpf2(1), dpf2(2 / 3f));
         }
         // the position is taken on screen: the keypad is scaled down on short screens
-        return new QrGlassButton(glassFactory.create(view, provider.build(), true).setRadius(dp(BUTTON_SIZE / 2)));
+        return new QrGlassButton(glassFactory.create(view, provider.build(), true).setRadius(isPinExact() ? (int) (org.telegram.ui.Components.glass.PinLayout.KEY_SIZE * AndroidUtilities.displaySize.x / 2f) : dp(BUTTON_SIZE / 2)));
     }
 
     /** The blurred background with the QR glass's sheen and rim over it (the rim reaches ~2dp past the bounds). */
@@ -1262,7 +1294,13 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
 
     private void onPasscodeError() {
         BotWebViewVibrationEffect.NOTIFICATION_ERROR.vibrate();
-        shakeTextView(2, 0);
+        if (SharedConfig.passcodeType == SharedConfig.PASSCODE_TYPE_PIN) {
+            // the dots fall; the message says why
+            showingPinError = true;
+            subtitleView.setText(LocaleController.getString(R.string.BrinaPinIncorrect));
+        } else {
+            shakeTextView(2, 0);
+        }
     }
 
     int resumeCount = 0;
@@ -1687,8 +1725,8 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                     animatorSet2.playTogether(
                         ObjectAnimator.ofFloat(imageView, View.TRANSLATION_X, x - dp(29), ix),
                         ObjectAnimator.ofFloat(imageView, View.TRANSLATION_Y, y - dp(29), imageY),
-                        ObjectAnimator.ofFloat(imageView, View.SCALE_X, 0.5f, 1.0f),
-                        ObjectAnimator.ofFloat(imageView, View.SCALE_Y, 0.5f, 1.0f)
+                        ObjectAnimator.ofFloat(imageView, View.SCALE_X, 0.5f * lockScale(), lockScale()),
+                        ObjectAnimator.ofFloat(imageView, View.SCALE_Y, 0.5f * lockScale(), lockScale())
                     );
                     animatorSet2.setInterpolator(CubicBezierInterpolator.EASE_OUT);
                     animatorSet2.start();
@@ -1698,8 +1736,8 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         } else {
             setAlpha(1.0f);
             onAnimationUpdate(shownT = 1f);
-            imageView.setScaleX(1.0f);
-            imageView.setScaleY(1.0f);
+            imageView.setScaleX(lockScale());
+            imageView.setScaleY(lockScale());
             imageView.stopAnimation();
             imageView.getAnimatedDrawable().setCurrentFrame(38, false);
             if (onShow != null) {
@@ -1727,6 +1765,12 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         int buttonSize = dp(BUTTON_SIZE);
 
         final boolean landscape = !AndroidUtilities.isTablet() && getContext().getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+        final boolean pinExact = isPinExact();
+        if (pinExact) {
+            buttonSize = (int) (org.telegram.ui.Components.glass.PinLayout.KEY_SIZE * width);
+            sizeBetweenNumbersX = (int) (org.telegram.ui.Components.glass.PinLayout.COLUMN_STEP * width) - buttonSize;
+            sizeBetweenNumbersY = org.telegram.ui.Components.glass.PinLayout.rowStep(width, height) - buttonSize;
+        }
 
         if (border != null) {
             border.setVisibility(SharedConfig.passcodeType == SharedConfig.PASSCODE_TYPE_PASSWORD ? VISIBLE : GONE);
@@ -1805,6 +1849,35 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         }
 
         int headerMargin = dp(landscape ? 52 : 82);
+        int keysLeft = 0;
+        final LayoutParams dotsParams = (LayoutParams) pinDotsView.getLayoutParams();
+        final View titleView = numbersTitleContainer.getChildAt(0);
+        if (pinExact) {
+            // the whole screen is the keypad's frame, so everything can sit at its own proportion
+            layoutParams = (LayoutParams) numbersFrameLayout.getLayoutParams();
+            layoutParams.width = width;
+            layoutParams.height = height;
+            layoutParams.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+            numbersFrameLayout.setLayoutParams(layoutParams);
+            layoutParams = (LayoutParams) numbersContainer.getLayoutParams();
+            layoutParams.topMargin = 0;
+            layoutParams.leftMargin = 0;
+            layoutParams.width = width;
+            layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
+            numbersContainer.setLayoutParams(layoutParams);
+
+            headerMargin = (int) (org.telegram.ui.Components.glass.PinLayout.FIRST_ROW_Y * height) - buttonSize / 2;
+            keysLeft = (width - buttonSize * 3 - sizeBetweenNumbersX * 2) / 2;
+            dotsParams.topMargin = (int) (org.telegram.ui.Components.glass.PinLayout.DOTS_Y * height) - dp(24);
+
+            titleView.setVisibility(GONE);
+            ((LayoutParams) subtitleView.getLayoutParams()).topMargin = 0;
+            subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, org.telegram.ui.Components.glass.PinLayout.MESSAGE_TEXT_SP);
+            subtitleView.setTypeface(AndroidUtilities.bold());
+            subtitleView.setMaxWidth((int) (org.telegram.ui.Components.glass.PinLayout.MESSAGE_WIDTH * width));
+        } else {
+            dotsParams.topMargin = headerMargin - dp(40);
+        }
         for (int a = 0; a < 12; a++) {
             LayoutParams layoutParams1;
             int num;
@@ -1822,7 +1895,9 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             FrameLayout frameLayout = numberFrameLayouts.get(a);
             layoutParams1 = (LayoutParams) frameLayout.getLayoutParams();
             layoutParams1.topMargin = headerMargin + (buttonSize + sizeBetweenNumbersY) * row;
-            layoutParams1.leftMargin = (buttonSize + sizeBetweenNumbersX) * col;
+            layoutParams1.leftMargin = keysLeft + (buttonSize + sizeBetweenNumbersX) * col;
+            layoutParams1.width = buttonSize;
+            layoutParams1.height = buttonSize;
             frameLayout.setLayoutParams(layoutParams1);
         }
 
@@ -1851,8 +1926,10 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         super.onLayout(changed, left, top, right, bottom);
 
         passcodeTextView.getLocationInWindow(pos);
-        if (!AndroidUtilities.isTablet() && getContext().getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            imageView.setTranslationY(imageY = pos[1] - dp(100));
+        if (isPinExact()) {
+            final int screenHeight = getHeight();
+            imageView.setTranslationY(imageY = (int) (org.telegram.ui.Components.glass.PinLayout.LOCK_Y * screenHeight) - dp(29));
+            numbersTitleContainer.setTranslationY(org.telegram.ui.Components.glass.PinLayout.MESSAGE_Y * screenHeight - numbersTitleContainer.getMeasuredHeight() / 2f);
         } else {
             imageView.setTranslationY(imageY = pos[1] - dp(100));
         }
@@ -1948,11 +2025,11 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             addView(imageView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
 
             textView1 = new TextView(context);
-            textView1.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
+            textView1.setTypeface(AndroidUtilities.bold());
             textView1.setTextColor(0xffffffff);
-            textView1.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 32);
+            textView1.setTextSize(TypedValue.COMPLEX_UNIT_DIP, org.telegram.ui.Components.glass.PinLayout.DIGIT_SP);
             textView1.setGravity(Gravity.CENTER);
-            addView(textView1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, -5.33f, 0, 0));
+            addView(textView1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
 
             textView2 = new TextView(context);
             textView2.setTypeface(AndroidUtilities.bold());
@@ -1973,7 +2050,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         public void setNum(int num) {
             imageView.setVisibility(View.GONE);
             textView1.setVisibility(View.VISIBLE);
-            textView2.setVisibility(View.VISIBLE);
+            textView2.setVisibility(View.GONE); // digits stand alone
             textView1.setText("" + num);
             textView2.setText(letter(num));
         }

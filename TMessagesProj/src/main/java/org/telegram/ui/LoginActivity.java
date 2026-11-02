@@ -568,7 +568,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 MarginLayoutParams marginLayoutParams = (MarginLayoutParams) floatingButton.getLayoutParams();
-                int keyboardOffset = isCustomKeyboardVisible() ? AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP - 4) : 0;
+                int keyboardOffset = isCustomKeyboardVisible() ? AndroidUtilities.dp(keyboardHeightDp() - 4) : 0;
                 if (isCustomKeyboardVisible() && measureKeyboardHeight() > AndroidUtilities.dp(20)) {
                     keyboardOffset -= measureKeyboardHeight();
                 }
@@ -642,7 +642,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     MarginLayoutParams params = (MarginLayoutParams) slideView.getLayoutParams();
                     int childBottom = getHeight() + AndroidUtilities.dp(16);
                     if (!slideView.hasCustomKeyboard() && keyboardView.getVisibility() == VISIBLE) {
-                        childBottom += AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP);
+                        childBottom += AndroidUtilities.dp(keyboardHeightDp());
                     }
                     slideView.layout(params.leftMargin, params.topMargin, getWidth() - params.rightMargin, childBottom);
                 }
@@ -657,7 +657,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     MarginLayoutParams params = (MarginLayoutParams) slideView.getLayoutParams();
                     int childHeight = height - params.topMargin + AndroidUtilities.dp(16);
                     if (!slideView.hasCustomKeyboard() && keyboardView.getVisibility() == VISIBLE) {
-                        childHeight += AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP);
+                        childHeight += AndroidUtilities.dp(keyboardHeightDp());
                     }
                     slideView.measure(MeasureSpec.makeMeasureSpec(width - params.rightMargin - params.leftMargin, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(childHeight, MeasureSpec.EXACTLY));
                 }
@@ -841,6 +841,30 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         return /*AndroidUtilities.displaySize.x > AndroidUtilities.displaySize.y || AndroidUtilities.isTablet() || */ AndroidUtilities.isAccessibilityTouchExplorationEnabled();
     }
 
+    /** The code entry pages use the PIN layout: a taller keypad of round keys. */
+    private boolean isPinPage() {
+        final SlideView view = views != null ? views[currentViewNum] : null;
+        return view instanceof LoginActivitySmsView && ((LoginActivitySmsView) view).usesPinLayout()
+            && org.telegram.ui.Components.glass.PinLayout.applies(getParentActivity() != null ? getParentActivity().getResources().getConfiguration() : ApplicationLoader.applicationContext.getResources().getConfiguration());
+    }
+
+    private int keyboardHeightDp() {
+        return isPinPage() ? CustomPhoneKeyboardView.getPinHeightDp() : CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP;
+    }
+
+    private void updateKeyboardLayout() {
+        if (keyboardView == null) {
+            return;
+        }
+        keyboardView.setPinLayout(isPinPage());
+        final ViewGroup.LayoutParams params = keyboardView.getLayoutParams();
+        final int height = AndroidUtilities.dp(keyboardHeightDp());
+        if (params != null && params.height != height) {
+            params.height = height;
+            keyboardView.setLayoutParams(params);
+        }
+    }
+
     private boolean isCustomKeyboardVisible() {
         return views[currentViewNum].hasCustomKeyboard() && !isCustomKeyboardForceDisabled();
     }
@@ -862,7 +886,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 keyboardAnimator.addUpdateListener(animation -> {
                     float val = (float) animation.getAnimatedValue();
                     keyboardView.setAlpha(val);
-                    keyboardView.setTranslationY((1f - val) * AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP));
+                    keyboardView.setTranslationY((1f - val) * AndroidUtilities.dp(keyboardHeightDp()));
                 });
                 keyboardAnimator.addListener(new AnimatorListenerAdapter() {
                     @Override
@@ -889,7 +913,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 keyboardAnimator.addUpdateListener(animation -> {
                     float val = (float) animation.getAnimatedValue();
                     keyboardView.setAlpha(val);
-                    keyboardView.setTranslationY((1f - val) * AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP));
+                    keyboardView.setTranslationY((1f - val) * AndroidUtilities.dp(keyboardHeightDp()));
                 });
                 keyboardAnimator.addListener(new AnimatorListenerAdapter() {
                     @Override
@@ -1502,6 +1526,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     }
 
     public void setPage(@ViewNumber int page, boolean animated, Bundle params, boolean back) {
+        // once this call has settled which page is current
+        AndroidUtilities.runOnUIThread(this::updateKeyboardLayout);
         boolean needFloatingButton = page == VIEW_PHONE_INPUT || page == VIEW_REGISTER || page == VIEW_PASSWORD ||
                 page == VIEW_NEW_PASSWORD_STAGE_1 || page == VIEW_NEW_PASSWORD_STAGE_2 || page == VIEW_ADD_EMAIL || page == VIEW_CODE_PHRASE || page == VIEW_CODE_WORD;
         if (page == currentViewNum) {
@@ -3772,6 +3798,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 addView(titleTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 18, 0, 0));
                 int sideMargin = currentType == AUTH_TYPE_FRAGMENT_SMS ? 16 : 0;
                 addView(confirmTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP, sideMargin, 17, sideMargin, 0));
+                if (usesPinLayout()) {
+                    frameLayout.setVisibility(GONE);
+                    titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, org.telegram.ui.Components.glass.PinLayout.MESSAGE_TEXT_SP);
+                    ((LinearLayout.LayoutParams) confirmTextView.getLayoutParams()).topMargin = AndroidUtilities.dp(6);
+                }
             }
             if (currentType != AUTH_TYPE_MISSED_CALL) {
                 codeFieldContainer = new CodeFieldContainer(context) {
@@ -3947,7 +3978,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
             if (centerContainer == null) {
                 bottomContainer = new FrameLayout(context);
-                bottomContainer.addView(errorViewSwitcher, LayoutHelper.createFrame(currentType == VIEW_CODE_FRAGMENT_SMS ? LayoutHelper.MATCH_PARENT : LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM, 0, 0, 0, 32));
+                bottomContainer.addView(errorViewSwitcher, LayoutHelper.createFrame(currentType == VIEW_CODE_FRAGMENT_SMS ? LayoutHelper.MATCH_PARENT : LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM, 0, 0, 0, usesPinLayout() ? 8 : 32));
                 addView(bottomContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 0, 1f));
             } else {
                 centerContainer.addView(errorViewSwitcher, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM, 0, 0, 0, 32));
@@ -4232,6 +4263,30 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 tryHideProgress(false);
             }), ConnectionsManager.RequestFlagFailOnServerErrors | ConnectionsManager.RequestFlagWithoutLogin);
             tryShowProgress(reqId);
+        }
+
+        final boolean usesPinLayout() {
+            return currentType != AUTH_TYPE_MISSED_CALL && currentType != AUTH_TYPE_FLASH_CALL;
+        }
+
+        private final int[] pinLocation = new int[2];
+
+        @Override
+        protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            super.onLayout(changed, l, t, r, b);
+            if (!usesPinLayout() || codeFieldContainer == null || !org.telegram.ui.Components.glass.PinLayout.applies(getResources().getConfiguration())) {
+                return;
+            }
+            // the message and dots sit at fixed places on the screen, wherever this page starts
+            getLocationInWindow(pinLocation);
+            final float top = pinLocation[1] - getTranslationY();
+            final int screenHeight = getRootView().getHeight();
+            final float dotsCenter = (codeFieldContainer.getTop() + codeFieldContainer.getBottom()) / 2f;
+            codeFieldContainer.setTranslationY(screenHeight * org.telegram.ui.Components.glass.PinLayout.DOTS_Y - top - dotsCenter);
+            final float messageCenter = (titleTextView.getTop() + confirmTextView.getBottom()) / 2f;
+            final float messageShift = screenHeight * org.telegram.ui.Components.glass.PinLayout.MESSAGE_Y - top - messageCenter;
+            titleTextView.setTranslationY(messageShift);
+            confirmTextView.setTranslationY(messageShift);
         }
 
         @Override
@@ -8415,7 +8470,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
             int toX = getParentLayout().getView().getWidth() - floatingButtonIcon.getLayoutParams().width - dp(20) - getParentLayout().getView().getPaddingLeft() - getParentLayout().getView().getPaddingRight(),
                     toY = getParentLayout().getView().getHeight() - floatingButtonIcon.getLayoutParams().height - dp(14) -
-                            (isCustomKeyboardVisible() ? AndroidUtilities.dp(CustomPhoneKeyboardView.KEYBOARD_HEIGHT_DP) : 0) - getParentLayout().getView().getPaddingTop() - getParentLayout().getView().getPaddingBottom();
+                            (isCustomKeyboardVisible() ? AndroidUtilities.dp(keyboardHeightDp()) : 0) - getParentLayout().getView().getPaddingTop() - getParentLayout().getView().getPaddingBottom();
 
             ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
             animator.addListener(new AnimatorListenerAdapter() {
