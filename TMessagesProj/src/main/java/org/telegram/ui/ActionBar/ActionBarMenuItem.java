@@ -2341,7 +2341,7 @@ public class ActionBarMenuItem extends FrameLayout {
                 } else if (data.chat instanceof TLRPC.Chat) {
                     TLRPC.Chat chat = (TLRPC.Chat) data.chat;
                     isCommunity = ChatObject.isCommunity(chat);
-                    avatarImageView.getImageReceiver().setRoundRadius(mBackgroundRadius = AndroidUtilities.dp(isCommunity ? 10 : 16));
+                    avatarImageView.getImageReceiver().setRoundRadius(mBackgroundRadius = AndroidUtilities.dp(16));
                     avatarImageView.getImageReceiver().setForUserOrChat(chat, thumbDrawable);
                 }
             } else if (data.filterType == FiltersView.FILTER_TYPE_ARCHIVE) {

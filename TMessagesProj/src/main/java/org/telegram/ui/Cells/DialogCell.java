@@ -3572,7 +3572,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 }
             }
 
-            drawCommunityAvatar = !insideCommunityList && ChatObject.isCommunity(chat) && isDialogCell;
+            drawCommunityAvatar = false; // every chat has a plain round avatar
 
             if (currentDialogFolderId != 0) {
                 Theme.dialogs_archiveAvatarDrawable.setCallback(this);
@@ -3699,20 +3699,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 }
                 reactionsMentionsAnimator.start();
             }
-            drawMonoforumAvatar = !isFolderCell() && chat != null && chat.monoforum;
+            drawMonoforumAvatar = false; // every chat has a plain round avatar
 
-            final int avatarRadius;
-            if (drawMonoforumAvatar) {
-                avatarRadius = 1;
-            } else if (drawCommunityAvatar) {
-                avatarRadius = dp(12);
-            } else if (chat != null && chat.forum && currentDialogFolderId == 0 && !useFromUserAsAvatar || !isSavedDialog && user != null && user.self && MessagesController.getInstance(currentAccount).savedViewAsChats) {
-                avatarRadius = dp(16);
-            } else {
-                avatarRadius = dp(28);
-            }
-
-            avatarImage.setRoundRadius(avatarRadius);
+            avatarImage.setRoundRadius(dp(28));
         }
         if (!isTopic && (getMeasuredWidth() != 0 || getMeasuredHeight() != 0)) {
             rebuildLayout = true;

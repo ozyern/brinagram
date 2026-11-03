@@ -3509,7 +3509,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 actionBar.setAdditionalTextLeft(dp(28));
                 communityAvatarDrawable = new AvatarDrawable(community);
                 communityAvatarImage = new BackupImageView(getContext());
-                communityAvatarImage.setRoundRadius(dp(11));
+                communityAvatarImage.setRoundRadius(dp(24));
                 communityAvatarImage.setForUserOrChat(community, communityAvatarDrawable);
                 actionBar.addView(communityAvatarImage, LayoutHelper.createFrame(32, 32, Gravity.BOTTOM | Gravity.LEFT, 58, 0, 0, 12f));
             } else {

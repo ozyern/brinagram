@@ -299,17 +299,19 @@ public class CustomPhoneKeyboardView extends ViewGroup {
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         if (isPinLayoutActive()) {
-            // rows are placed from the screen's bottom, which this view's bottom sits on
+            // rows hang from this view's top: its height comes from an estimate of the screen, and
+            // measuring from the real screen's bottom pushed the first row out of the view
             final int screenHeight = getRootView().getHeight() > 0 ? getRootView().getHeight() : org.telegram.ui.Components.glass.PinLayout.estimatedScreenHeight();
             final int keySize = pinKeySize();
-            final int rowStep = org.telegram.ui.Components.glass.PinLayout.rowStep(getWidth(), screenHeight);
+            final int topInset = dp(org.telegram.ui.Components.glass.PinLayout.KEYPAD_TOP_INSET_DP);
+            final int fittingStep = (getHeight() - topInset - keySize - dp(4)) / 3;
+            final int rowStep = Math.min(org.telegram.ui.Components.glass.PinLayout.rowStep(getWidth(), screenHeight), fittingStep);
             final int columnStep = (int) (org.telegram.ui.Components.glass.PinLayout.COLUMN_STEP * getWidth());
-            final float lastRowFromBottom = (1f - org.telegram.ui.Components.glass.PinLayout.FIRST_ROW_Y - 3 * org.telegram.ui.Components.glass.PinLayout.ROW_STEP) * screenHeight;
-            final int lastRowCenter = (int) (getHeight() - lastRowFromBottom);
+            final int firstRowCenter = topInset + keySize / 2;
             for (int i = 0; i < views.length; i++) {
                 if (views[i] == null) continue;
                 final int cx = getWidth() / 2 + (i % 3 - 1) * columnStep;
-                final int cy = lastRowCenter - (3 - i / 3) * rowStep;
+                final int cy = firstRowCenter + i / 3 * rowStep;
                 views[i].layout(cx - keySize / 2, cy - keySize / 2, cx + keySize / 2, cy + keySize / 2);
             }
             return;
@@ -367,6 +369,10 @@ public class CustomPhoneKeyboardView extends ViewGroup {
 
     public void updateColors() {
         backButton.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        // on the PIN layout the delete key is a small solid glyph with no plate of its own
+        final boolean pinKeys = isPinLayoutActive();
+        backButton.setImageResource(pinKeys ? R.drawable.brina_pin_delete : R.drawable.msg_clear_input);
+        backButton.setScaleType(pinKeys ? ImageView.ScaleType.CENTER : ImageView.ScaleType.FIT_CENTER);
         for (int a = 0; a < views.length; a++) {
             View v = views[a];
             if (v != null) {

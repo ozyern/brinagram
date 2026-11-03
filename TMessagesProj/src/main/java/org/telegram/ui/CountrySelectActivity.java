@@ -11,6 +11,7 @@ package org.telegram.ui;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
@@ -30,6 +31,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
@@ -46,6 +48,10 @@ import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.EmptyTextProgressView;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
+import org.telegram.ui.Components.blur3.BlurredBackgroundDrawableViewFactory;
+import org.telegram.ui.Components.blur3.drawable.color.impl.BlurredBackgroundProviderImpl;
+import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceRenderNode;
+import org.telegram.ui.Components.chat.ViewPositionWatcher;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -141,7 +147,24 @@ public class CountrySelectActivity extends BaseFragment {
         listViewAdapter = new CountryAdapter(context, existingCountries, disableAnonymousNumbers);
         searchListViewAdapter = new CountrySearchAdapter(context, listViewAdapter.getCountries());
 
-        fragmentView = new FrameLayout(context);
+        fragmentView = new FrameLayout(context) {
+            @Override
+            protected void dispatchDraw(Canvas canvas) {
+                recordGlassSource(this);
+                super.dispatchDraw(canvas);
+            }
+
+            /** The list is recorded into the glass source from here, the only place with its draw order. */
+            private void recordGlassSource(FrameLayout parent) {
+                if (glassSource == null || glassSource.inRecording() || listView == null || parent.getWidth() <= 0 || parent.getHeight() <= 0) {
+                    return;
+                }
+                final Canvas c = glassSource.beginRecording(parent.getWidth(), parent.getHeight());
+                c.drawColor(Theme.getColor(Theme.key_windowBackgroundGray));
+                drawChild(c, listView, getDrawingTime());
+                glassSource.endRecording();
+            }
+        };
         FrameLayout frameLayout = (FrameLayout) fragmentView;
         frameLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
 
@@ -195,24 +218,48 @@ public class CountrySelectActivity extends BaseFragment {
                     AndroidUtilities.hideKeyboard(getParentActivity().getCurrentFocus());
                 }
             }
+
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                fragmentView.invalidate(); // the glass refracts the list, so it follows every frame
+            }
         });
 
         return fragmentView;
     }
 
     private static final int SEARCH_BAR_SPACE_DP = 74;
+    private static final int SEARCH_BAR_HEIGHT_DP = 46;
+    /** How far the glass reaches past the bar's own bounds, for its rim and shadow. */
+    private static final int SEARCH_GLASS_PADDING_DP = 7;
 
-    /** The search field floats in a glass pill at the bottom, within reach, and rides above the keyboard. */
+    /** What the search bar's glass bends and blurs: live from Android 12, a plain pane before that. */
+    private BlurredBackgroundSourceRenderNode glassSource;
+
+    private Drawable createSearchGlass(View bar, FrameLayout parent) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return new org.telegram.ui.Components.glass.GlassPillDrawable().setDark(Theme.isCurrentThemeDark());
+        }
+        glassSource = new BlurredBackgroundSourceRenderNode(null);
+        final BlurredBackgroundDrawableViewFactory factory = new BlurredBackgroundDrawableViewFactory(glassSource);
+        factory.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
+        factory.setSourceRootView(new ViewPositionWatcher(parent), parent);
+        return factory.create(bar, BlurredBackgroundProviderImpl.topPanel(getResourceProvider()))
+            .setRadius(AndroidUtilities.dp(SEARCH_BAR_HEIGHT_DP / 2f))
+            .setPadding(AndroidUtilities.dp(SEARCH_GLASS_PADDING_DP));
+    }
+
+    /** The search field floats in a pill of real liquid glass at the bottom, and rides above the keyboard. */
     private void createSearchBar(Context context, FrameLayout parent) {
         final FrameLayout searchBar = new FrameLayout(context);
-        searchBar.setBackground(new org.telegram.ui.Components.glass.GlassPillDrawable().setDark(Theme.isCurrentThemeDark()));
+        searchBar.setBackground(createSearchGlass(searchBar, parent));
 
         final int hintColor = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText);
         final android.widget.ImageView searchIcon = new android.widget.ImageView(context);
         searchIcon.setScaleType(android.widget.ImageView.ScaleType.CENTER);
         searchIcon.setImageResource(R.drawable.outline_header_search);
         searchIcon.setColorFilter(new android.graphics.PorterDuffColorFilter(hintColor, android.graphics.PorterDuff.Mode.SRC_IN));
-        searchBar.addView(searchIcon, LayoutHelper.createFrame(24, 24, android.view.Gravity.LEFT | android.view.Gravity.CENTER_VERTICAL, 12, 0, 0, 0));
+        searchBar.addView(searchIcon, LayoutHelper.createFrame(24, 24, android.view.Gravity.LEFT | android.view.Gravity.CENTER_VERTICAL, 12 + SEARCH_GLASS_PADDING_DP, 0, 0, 0));
 
         final EditText field = new EditText(context);
         field.setBackground(null);
@@ -223,7 +270,7 @@ public class CountrySelectActivity extends BaseFragment {
         field.setHintTextColor(hintColor);
         field.setHint(LocaleController.getString(R.string.Search));
         field.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
-        searchBar.addView(field, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, android.view.Gravity.CENTER_VERTICAL, 44, 0, 44, 0));
+        searchBar.addView(field, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, android.view.Gravity.CENTER_VERTICAL, 44 + SEARCH_GLASS_PADDING_DP, 0, 44 + SEARCH_GLASS_PADDING_DP, 0));
 
         final android.widget.ImageView clearButton = new android.widget.ImageView(context);
         clearButton.setScaleType(android.widget.ImageView.ScaleType.CENTER);
@@ -231,7 +278,7 @@ public class CountrySelectActivity extends BaseFragment {
         clearButton.setColorFilter(new android.graphics.PorterDuffColorFilter(hintColor, android.graphics.PorterDuff.Mode.SRC_IN));
         clearButton.setVisibility(View.GONE);
         clearButton.setOnClickListener(v -> field.setText(""));
-        searchBar.addView(clearButton, LayoutHelper.createFrame(40, 40, android.view.Gravity.RIGHT | android.view.Gravity.CENTER_VERTICAL, 0, 0, 4, 0));
+        searchBar.addView(clearButton, LayoutHelper.createFrame(40, 40, android.view.Gravity.RIGHT | android.view.Gravity.CENTER_VERTICAL, 0, 0, 4 + SEARCH_GLASS_PADDING_DP, 0));
 
         field.addTextChangedListener(new android.text.TextWatcher() {
             @Override
@@ -259,7 +306,8 @@ public class CountrySelectActivity extends BaseFragment {
                 }
             }
         });
-        parent.addView(searchBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 46, android.view.Gravity.BOTTOM, 16, 0, 16, 14));
+        // the view is larger than the pill by the glass's padding, so the pill keeps its place
+        parent.addView(searchBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, SEARCH_BAR_HEIGHT_DP + SEARCH_GLASS_PADDING_DP * 2, android.view.Gravity.BOTTOM, 16 - SEARCH_GLASS_PADDING_DP, 0, 16 - SEARCH_GLASS_PADDING_DP, 14 - SEARCH_GLASS_PADDING_DP));
 
         // above the keyboard and navigation bar, minus whatever the window already resized away
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(parent, (v, insets) -> {

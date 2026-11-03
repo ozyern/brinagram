@@ -95,7 +95,7 @@ public class BackButtonMenu {
             if (chat == null && user == null) {
                 imageView.setRoundRadius(0);
             } else {
-                imageView.setRoundRadius(chat != null && chat.forum ? AndroidUtilities.dp(8) : AndroidUtilities.dp(16));
+                imageView.setRoundRadius(AndroidUtilities.dp(16));
             }
             cell.addView(imageView, LayoutHelper.createFrameRelatively(32, 32, Gravity.START | Gravity.CENTER_VERTICAL, 8, 0, 0, 0));
 

@@ -628,6 +628,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         sizeNotifierFrameLayout.addView(scrollView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
         keyboardLinearLayout = new LinearLayout(context);
+        keyboardLinearLayout.setClipChildren(false); // a pressed key swells slightly past its slot
         keyboardLinearLayout.setOrientation(LinearLayout.VERTICAL);
         scrollView.addView(keyboardLinearLayout, LayoutHelper.createScroll(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT));
 
@@ -757,7 +758,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             emailChangeSkipButton.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
             emailChangeSkipButton.setPadding(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), 0);
             emailChangeSkipButton.setText(getString(R.string.YourEmailSkip));
-            emailChangeSkipButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            emailChangeSkipButton.setTextColor(loginLinkText());
             sizeNotifierFrameLayout.addView(emailChangeSkipButton, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 30, Gravity.TOP | Gravity.RIGHT, 0, 16, 16, 0));
             emailChangeSkipButton.setOnClickListener(v -> {
                 if (emailChangeSkipCallback != null) {
@@ -2718,7 +2719,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         @Override
         public void updateColors() {
             titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+            subtitleView.setTextColor(loginSecondaryText());
             subtitleView.setLinkTextColor(Theme.getColor(Theme.key_chat_messageLinkIn));
             for (int i = 0; i < countryButton.getChildCount(); i++) {
                 TextView textView = (TextView) countryButton.getChildAt(i);
@@ -3868,7 +3869,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 timeText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText));
 
                 if (nextType == AUTH_TYPE_CALL || nextType == AUTH_TYPE_SMS || nextType == AUTH_TYPE_PHRASE || nextType == AUTH_TYPE_WORD || nextType == AUTH_TYPE_MISSED_CALL || nextType == AUTH_TYPE_FRAGMENT_SMS) {
-//                    timeText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+//                    timeText.setTextColor(loginSecondaryText());
                     if (nextType == AUTH_TYPE_CALL || nextType == AUTH_TYPE_MISSED_CALL) {
                         timeText.setText(getString(R.string.Calling));
                     } else {
@@ -4185,10 +4186,10 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             if (timeTextColorTag == null) {
                 timeTextColorTag = Theme.key_windowBackgroundWhiteGrayText6;
             }
-            timeText.setTextColor(Theme.getColor(timeTextColorTag));
+            timeText.setTextColor(timeTextColorTag == Theme.key_windowBackgroundWhiteGrayText6 ? loginSecondaryText() : Theme.getColor(timeTextColorTag));
 
             if (currentType != AUTH_TYPE_FRAGMENT_SMS) {
-                problemText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+                problemText.setTextColor(loginLinkText());
             }
             wrongCode.setTextColor(Theme.getColor(Theme.key_text_RedBold));
         }
@@ -4709,7 +4710,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             if (timeTimer != null) {
                 return;
             }
-            timeText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+            timeText.setTextColor(loginSecondaryText());
             timeText.setTag(R.id.color_key_tag, Theme.key_windowBackgroundWhiteGrayText6);
             if (progressView != null) {
                 progressView.resetProgressAnimation();
@@ -4759,7 +4760,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         }
 
         private void destroyTimer() {
-            timeText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+            timeText.setTextColor(loginSecondaryText());
             timeText.setTag(R.id.color_key_tag, Theme.key_windowBackgroundWhiteGrayText6);
             try {
                 synchronized (timerSync) {
@@ -5567,11 +5568,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         @Override
         public void updateColors() {
             titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            confirmTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+            confirmTextView.setTextColor(loginSecondaryText());
             codeField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
             codeField.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
             codeField.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
-            cancelButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            cancelButton.setTextColor(loginLinkText());
             outlineCodeField.updateColor();
         }
 
@@ -6117,10 +6118,10 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         @Override
         public void updateColors() {
             titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+            subtitleView.setTextColor(loginSecondaryText());
             subtitleView.setLinkTextColor(Theme.getColor(Theme.key_chat_messageLinkIn));
             emailField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            signInWithGoogleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            signInWithGoogleView.setTextColor(loginLinkText());
             loginOrView.updateColors();
 
             emailOutlineView.invalidate();
@@ -6646,12 +6647,12 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         @Override
         public void updateColors() {
             titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            confirmTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
-            signInWithGoogleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            confirmTextView.setTextColor(loginSecondaryText());
+            signInWithGoogleView.setTextColor(loginLinkText());
             loginOrView.updateColors();
-            resendCodeView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
-            cantAccessEmailView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
-            emailResetInView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+            resendCodeView.setTextColor(loginLinkText());
+            cantAccessEmailView.setTextColor(loginLinkText());
+            emailResetInView.setTextColor(loginSecondaryText());
             wrongCodeView.setTextColor(Theme.getColor(Theme.key_text_RedBold));
 
             codeFieldContainer.invalidate();
@@ -7253,8 +7254,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         @Override
         public void updateColors() {
             titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            confirmTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
-            troubleButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            confirmTextView.setTextColor(loginSecondaryText());
+            troubleButton.setTextColor(loginLinkText());
 
             codeFieldContainer.invalidate();
         }
@@ -7597,7 +7598,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         @Override
         public void updateColors() {
             titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            confirmTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+            confirmTextView.setTextColor(loginSecondaryText());
             for (EditTextBoldCursor editText : codeField) {
                 editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                 editText.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
@@ -7605,7 +7606,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             for (OutlineTextContainerView outlineField : outlineFields) {
                 outlineField.updateColor();
             }
-            cancelButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            cancelButton.setTextColor(loginLinkText());
             if (passwordButton != null) {
                 passwordButton.setColorFilter(Theme.getColor(isPasswordVisible ? Theme.key_windowBackgroundWhiteInputFieldActivated : Theme.key_windowBackgroundWhiteHintText));
                 passwordButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1));
@@ -8146,13 +8147,13 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         public void updateColors() {
             avatarDrawable.invalidateSelf();
             titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            descriptionTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+            descriptionTextView.setTextColor(loginSecondaryText());
             firstNameField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
             firstNameField.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
             lastNameField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
             lastNameField.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
-            wrongNumber.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
-            privacyView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+            wrongNumber.setTextColor(loginLinkText());
+            privacyView.setTextColor(loginSecondaryText());
             privacyView.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteLinkText));
 
             firstNameOutlineView.updateColor();
@@ -8491,7 +8492,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 public void onAnimationStart(Animator animation) {
                     floatingButton.setButtonVisible(false, false);
                     keyboardLinearLayout.setAlpha(0);
-                    fragmentView.setBackgroundColor(Color.TRANSPARENT);
+                    loginBackdrop.setAlpha(0);
+                    fragmentView.setBackground(loginBackdrop);
                     startMessagingButton.setVisibility(View.INVISIBLE);
 
                     FrameLayout frameLayout = (FrameLayout) fragmentView;
@@ -8502,7 +8504,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 public void onAnimationEnd(Animator animation) {
                     keyboardLinearLayout.setAlpha(1);
                     startMessagingButton.setVisibility(View.VISIBLE);
-                    fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                    loginBackdrop.setAlpha(255);
                     floatingButton.setButtonVisible(true, false);
 
                     FrameLayout frameLayout = (FrameLayout) fragmentView;
@@ -8517,12 +8519,10 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     callback.run();
                 }
             });
-            int bgColor = Theme.getColor(Theme.key_windowBackgroundWhite);
-            int initialAlpha = Color.alpha(bgColor);
             animator.addUpdateListener(animation -> {
                 float val = (float) animation.getAnimatedValue();
                 keyboardLinearLayout.setAlpha(val);
-                fragmentView.setBackgroundColor(ColorUtils.setAlphaComponent(bgColor, (int) (initialAlpha * val)));
+                loginBackdrop.setAlpha((int) (255 * val));
 
                 float inverted = 1f - val;
                 slideViewsContainer.setTranslationY(AndroidUtilities.dp(20) * inverted);
@@ -8555,8 +8555,21 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         return null;
     }
 
+    private org.telegram.ui.Components.glass.PinBackdropDrawable loginBackdrop;
+
+    /** Secondary text over the luminous backdrop: the theme's grays turn muddy on indigo. */
+    private static int loginSecondaryText() {
+        return Theme.isCurrentThemeDark() ? 0xCCFFFFFF : Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6);
+    }
+
+    /** Links over the luminous backdrop: the theme's blue disappears into it. */
+    private static int loginLinkText() {
+        return Theme.isCurrentThemeDark() ? 0xFFFFFFFF : Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4);
+    }
+
     private void updateColors() {
-        fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        loginBackdrop = new org.telegram.ui.Components.glass.PinBackdropDrawable(Theme.isCurrentThemeDark());
+        fragmentView.setBackground(loginBackdrop);
 
         backButtonView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         backButtonView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)));
@@ -9192,7 +9205,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     isResendingCode = true;
                     timeText.invalidate();
                     timeText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText));
-//                    timeText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6));
+//                    timeText.setTextColor(loginSecondaryText());
                     timeText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
                     if (nextType == AUTH_TYPE_CALL || nextType == AUTH_TYPE_MISSED_CALL) {
                         timeText.setText(getString(R.string.Calling));
@@ -9305,12 +9318,12 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         @Override
         public void updateColors() {
             titleTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-            confirmTextView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText6));
+            confirmTextView.setTextColor(loginSecondaryText());
             codeField.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
             codeField.setCursorColor(getThemedColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
             codeField.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteHintText));
             outlineField.updateColor();
-//            cancelButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+//            cancelButton.setTextColor(loginLinkText());
         }
 
         @Override

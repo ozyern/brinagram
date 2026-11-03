@@ -540,7 +540,7 @@ public class GroupCreateUserCell extends FrameLayout {
             }
         }
 
-        avatarImageView.setRoundRadius(currentChat != null && currentChat.forum ? AndroidUtilities.dp(14) : AndroidUtilities.dp(24));
+        avatarImageView.setRoundRadius(AndroidUtilities.dp(24));
         if (currentStatus != null) {
             statusTextView.setText(currentStatus, true);
             statusTextView.setTag(Theme.key_windowBackgroundWhiteGrayText);

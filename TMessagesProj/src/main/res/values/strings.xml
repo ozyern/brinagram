@@ -5819,6 +5819,7 @@
     <string name="BrinaLiquidGlassInfo">Refraction and light on the dock, bars and buttons. Needs Android 13 or newer.</string>
     <string name="BrinaHideStories">Hide stories</string>
     <string name="BrinaDisableNumberRounding">Show full numbers (4777, not 4.8K)</string>
+    <string name="BrinaShowMessageTime">Show time and ticks in text bubbles</string>
     <string name="BrinaHideKeyboardOnScroll">Hide keyboard when scrolling a chat</string>
     <string name="BrinaDisableNextChannel">Don\'t swipe to the next channel</string>
     <string name="BrinaDisableGreetingSticker">No greeting sticker in new chats</string>

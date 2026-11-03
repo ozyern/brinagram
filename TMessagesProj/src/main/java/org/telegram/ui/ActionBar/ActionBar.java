@@ -2276,10 +2276,31 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         }
     }
 
+    private final Paint scrollEdgePaint = new Paint();
+    private int scrollEdgeHeight;
+    private boolean scrollEdgeDark;
+
+    /** Messages melt away under the header, leaving the status bar and the glass controls readable. */
+    private void drawScrollEdge(Canvas canvas) {
+        final boolean dark = resourcesProvider != null ? resourcesProvider.isDark() : Theme.isCurrentThemeDark();
+        if (scrollEdgeHeight != getHeight() || scrollEdgeDark != dark || scrollEdgePaint.getShader() == null) {
+            scrollEdgeHeight = getHeight();
+            scrollEdgeDark = dark;
+            final int rgb = dark ? 0x000000 : 0xFFFFFF;
+            scrollEdgePaint.setShader(new android.graphics.LinearGradient(0, 0, 0, scrollEdgeHeight,
+                new int[] {0xF2000000 | rgb, 0xB3000000 | rgb, rgb},
+                new float[] {0f, 0.55f, 1f}, android.graphics.Shader.TileMode.CLAMP));
+        }
+        canvas.drawRect(0, 0, getWidth(), scrollEdgeHeight, scrollEdgePaint);
+    }
+
     @Override
     protected void dispatchDraw(Canvas canvas) {
         final int p = dp(6);
         final int s = dp(46);
+        if (chatAvatarContainer != null && glassMode && !glassOnlyBack) {
+            drawScrollEdge(canvas);
+        }
 
         final float actionModeFactor = getActionModeFactor();
         final int menuWidthA = hasForcedMenuWidth ? forcedMenuWidth : (int) animatorMenuItemsWidth.getFactor();

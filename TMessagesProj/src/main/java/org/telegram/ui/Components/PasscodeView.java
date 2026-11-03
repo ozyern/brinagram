@@ -602,7 +602,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
 
             private void drawBackground(Canvas canvas) {
                 if (backgroundDrawable != null) {
-                    if (backgroundDrawable instanceof MotionBackgroundDrawable || backgroundDrawable instanceof ColorDrawable || backgroundDrawable instanceof GradientDrawable) {
+                    if (backgroundDrawable instanceof MotionBackgroundDrawable || backgroundDrawable instanceof ColorDrawable || backgroundDrawable instanceof GradientDrawable || backgroundDrawable instanceof org.telegram.ui.Components.glass.PinBackdropDrawable) {
                         backgroundDrawable.setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight());
                         backgroundDrawable.draw(canvas);
                     } else {
@@ -839,7 +839,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             frameLayout.setTag(a);
             if (a == 11) {
                 frameLayout.setForeground(Theme.createSimpleSelectorRoundRectDrawable(dp(30), 0, 0x26ffffff));
-                frameLayout.setImage(R.drawable.filled_clear);
+                frameLayout.setImage(R.drawable.brina_pin_delete);
                 frameLayout.setAlpha(0f); // appears with the first digit
                 frameLayout.setOnLongClickListener(v -> {
                     passwordEditText.setText("");
@@ -1560,6 +1560,9 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             }
             ((MotionBackgroundDrawable) backgroundDrawable).setParentView(backgroundFrameLayout);
         }
+        // the lock always sits on its own luminous wallpaper, whatever the chat wallpaper is
+        backgroundDrawable = new org.telegram.ui.Components.glass.PinBackdropDrawable(true);
+        backgroundFrameLayout.setBackgroundColor(backgroundFrameLayoutColor = 0);
 
         passcodeTextView.setText(isAppLock() ? LocaleController.getString(R.string.AppLocked) : title);
 

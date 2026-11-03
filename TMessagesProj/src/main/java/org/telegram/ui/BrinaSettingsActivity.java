@@ -31,6 +31,7 @@ public class BrinaSettingsActivity extends UniversalFragment {
     private static final int ID_PROXIMITY = 10;
     private static final int ID_PREFER_IPV6 = 11;
     private static final int ID_PLAIN_CHAT_BACKGROUND = 12;
+    private static final int ID_SHOW_MESSAGE_TIME = 13;
 
     @Override
     protected CharSequence getTitle() {
@@ -49,6 +50,7 @@ public class BrinaSettingsActivity extends UniversalFragment {
 
         items.add(UItem.asHeader(getString(R.string.BrinaSettingsChats)));
         items.add(UItem.asCheck(ID_PLAIN_CHAT_BACKGROUND, getString(R.string.BrinaPlainChatBackground)).setChecked(BrinaConfig.plainChatBackground));
+        items.add(UItem.asCheck(ID_SHOW_MESSAGE_TIME, getString(R.string.BrinaShowMessageTime)).setChecked(BrinaConfig.showMessageTime));
         items.add(UItem.asCheck(ID_HIDE_KEYBOARD, getString(R.string.BrinaHideKeyboardOnScroll)).setChecked(BrinaConfig.hideKeyboardOnChatScroll));
         items.add(UItem.asCheck(ID_NEXT_CHANNEL, getString(R.string.BrinaDisableNextChannel)).setChecked(BrinaConfig.disableJumpToNextChannel));
         items.add(UItem.asCheck(ID_GREETING_STICKER, getString(R.string.BrinaDisableGreetingSticker)).setChecked(BrinaConfig.disableGreetingSticker));
@@ -87,6 +89,9 @@ public class BrinaSettingsActivity extends UniversalFragment {
                 break;
             case ID_PLAIN_CHAT_BACKGROUND:
                 BrinaConfig.toggle("plainChatBackground");
+                break;
+            case ID_SHOW_MESSAGE_TIME:
+                BrinaConfig.toggle("showMessageTime");
                 break;
             case ID_HIDE_KEYBOARD:
                 BrinaConfig.toggle("hideKeyboardOnChatScroll");

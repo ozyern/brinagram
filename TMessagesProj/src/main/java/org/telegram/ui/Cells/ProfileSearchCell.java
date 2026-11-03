@@ -864,7 +864,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             avatarImage.setImage(null, null, avatarDrawable, null, null, 0);
         }
 
-        avatarImage.setRoundRadius(ChatObject.isCommunity(chat) ? DrawableUtils.getCommunityCardDrawableRadius(dp(46)) : chat != null && chat.monoforum ? 0 : rectangularAvatar ? dp(10) : chat != null && chat.forum ? dp(16) : dp(23));
+        avatarImage.setRoundRadius(rectangularAvatar ? dp(10) : dp(23));
         if (mask != 0) {
             boolean continueUpdate = false;
             if ((mask & MessagesController.UPDATE_MASK_AVATAR) != 0 && user != null || (mask & MessagesController.UPDATE_MASK_CHAT_AVATAR) != 0 && chat != null) {
@@ -1053,25 +1053,9 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
 
         if (dontDrawAvatar) {
 
-        } else if (chat != null && chat.monoforum) {
-            if (bubbleClip == null) {
-                bubbleClip = new PhotoBubbleClip();
-            }
-            bubbleClip.setBounds((int) avatarStoryParams.originalAvatarRect.centerX(), (int) avatarStoryParams.originalAvatarRect.centerY(), (int) (avatarStoryParams.originalAvatarRect.width() / 2));
-            canvas.save();
-            canvas.clipPath(bubbleClip);
-            avatarImage.setImageCoords(avatarStoryParams.originalAvatarRect);
-            avatarImage.draw(canvas);
-            canvas.restore();
         } else if (user != null) {
             StoriesUtilities.drawAvatarWithStory(user.id, canvas, avatarImage, avatarStoryParams);
         } else if (chat != null) {
-            if (ChatObject.isCommunity(chat)) {
-                DrawableUtils.drawCommunityCardDrawable(canvas, Theme.dialogs_communityCardsDrawable,
-                    avatarStoryParams.originalAvatarRect.centerX(),
-                    avatarStoryParams.originalAvatarRect.centerY(),
-                    avatarStoryParams.originalAvatarRect.width());
-            }
             StoriesUtilities.drawAvatarWithStory(-chat.id, canvas, avatarImage, avatarStoryParams);
         } else {
             avatarImage.setImageCoords(avatarStoryParams.originalAvatarRect);

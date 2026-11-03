@@ -30,6 +30,8 @@ public final class BrinaConfig {
     public static boolean disableVoiceMessageAutoPlay;
     /** MediaController: ignore the proximity sensor (no switching to the earpiece). */
     public static boolean disableProximityEvents;
+    /** ChatMessageCell: keep the time and ticks inside plain text bubbles. */
+    public static boolean showMessageTime;
 
     // General
     /** VoIPHelper: confirm before starting a call. */
@@ -65,6 +67,7 @@ public final class BrinaConfig {
             disableInstantCamera = p.getBoolean("disableInstantCamera", false);
             disableVoiceMessageAutoPlay = p.getBoolean("disableVoiceMessageAutoPlay", false);
             disableProximityEvents = p.getBoolean("disableProximityEvents", false);
+            showMessageTime = p.getBoolean("showMessageTime", false);
             askBeforeCall = p.getBoolean("askBeforeCall", true);
             hideStories = p.getBoolean("hideStories", false);
             disableNumberRounding = p.getBoolean("disableNumberRounding", false);
@@ -85,6 +88,7 @@ public final class BrinaConfig {
             case "disableInstantCamera": value = disableInstantCamera = !disableInstantCamera; break;
             case "disableVoiceMessageAutoPlay": value = disableVoiceMessageAutoPlay = !disableVoiceMessageAutoPlay; break;
             case "disableProximityEvents": value = disableProximityEvents = !disableProximityEvents; break;
+            case "showMessageTime": value = showMessageTime = !showMessageTime; break;
             case "askBeforeCall": value = askBeforeCall = !askBeforeCall; break;
             case "hideStories": value = hideStories = !hideStories; break;
             case "disableNumberRounding": value = disableNumberRounding = !disableNumberRounding; break;
@@ -105,6 +109,7 @@ public final class BrinaConfig {
             case "disableInstantCamera": return disableInstantCamera;
             case "disableVoiceMessageAutoPlay": return disableVoiceMessageAutoPlay;
             case "disableProximityEvents": return disableProximityEvents;
+            case "showMessageTime": return showMessageTime;
             case "askBeforeCall": return askBeforeCall;
             case "hideStories": return hideStories;
             case "disableNumberRounding": return disableNumberRounding;

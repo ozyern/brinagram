@@ -85,6 +85,9 @@ public class MessageDrawable extends Drawable {
             {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff}
     };
 
+    /** Corners facing a neighbour in a run of bubbles stay soft, so each bubble keeps its pill shape. */
+    private static final int NEAR_RADIUS_DP = 11;
+
     public static final int TYPE_TEXT = 0;
     public static final int TYPE_MEDIA = 1;
     public static final int TYPE_PREVIEW = 2;
@@ -199,10 +202,11 @@ public class MessageDrawable extends Drawable {
             animatedGradient = false;
         } else if (isOut) {
             color = getColor(isSelected ? Theme.key_chat_outBubbleSelected : Theme.key_chat_outBubble);
-            gradientColor1 = getCurrentColor(Theme.key_chat_outBubbleGradient1);
-            gradientColor2 = getCurrentColor(Theme.key_chat_outBubbleGradient2);
-            gradientColor3 = getCurrentColor(Theme.key_chat_outBubbleGradient3);
-            animatedGradient = getCurrentColor(Theme.key_chat_outBubbleGradientAnimated) != 0;
+            // BrinaGram: outgoing bubbles are one flat color, whatever gradient the theme has
+            gradientColor1 = 0;
+            gradientColor2 = 0;
+            gradientColor3 = 0;
+            animatedGradient = false;
         } else {
             color = getColor(isSelected ? Theme.key_chat_inBubbleSelected : Theme.key_chat_inBubble);
             gradientColor1 = 0;
@@ -582,7 +586,7 @@ public class MessageDrawable extends Drawable {
             nearRad = dp(6);
         } else {
             rad = dp(SharedConfig.bubbleRadius);
-            nearRad = dp(Math.min(6, SharedConfig.bubbleRadius));
+            nearRad = dp(Math.min(NEAR_RADIUS_DP, SharedConfig.bubbleRadius));
         }
         int smallRad = dp(6);
 
@@ -645,7 +649,7 @@ public class MessageDrawable extends Drawable {
             nearRad = dp(6);
         } else {
             rad = dp(SharedConfig.bubbleRadius);
-            nearRad = dp(Math.min(6, SharedConfig.bubbleRadius));
+            nearRad = dp(Math.min(NEAR_RADIUS_DP, SharedConfig.bubbleRadius));
         }
         int smallRad = dp(6);
         int top = Math.max(bounds.top, 0);

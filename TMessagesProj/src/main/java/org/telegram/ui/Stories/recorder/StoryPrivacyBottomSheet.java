@@ -3162,7 +3162,7 @@ public class StoryPrivacyBottomSheet extends BottomSheet implements Notification
             dialogId = chat == null ? 0 : -chat.id;
 
             avatarDrawable.setInfo(chat);
-            imageView.setRoundRadius(dp(ChatObject.isForum(chat) ? 12 : 20));
+            imageView.setRoundRadius(dp(20));
             imageView.setForUserOrChat(chat, avatarDrawable);
 
             CharSequence text = chat.title;

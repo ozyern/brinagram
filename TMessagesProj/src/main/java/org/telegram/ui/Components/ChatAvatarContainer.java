@@ -262,7 +262,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             }
         }
         avatarImageView.setContentDescription(getString(R.string.AccDescrProfilePicture));
-        avatarImageView.setRoundRadius(dp(21));
+        avatarImageView.setRoundRadius(dp(24));
         addView(avatarImageView);
         if (avatarClickable) {
             final TLRPC.Chat chat = parentFragment != null ? parentFragment.getCurrentChat() : null;
@@ -774,14 +774,14 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
      * edge. The pill shows the status instead of the name only while someone is typing.
      */
     public boolean brinaStacked = true;
-    public static final int STACKED_AVATAR_DP = 48;
+    public static final int STACKED_AVATAR_DP = 44;
     /** Name pill: from this offset below the bar's center line, this tall. */
-    public static final int STACKED_PILL_TOP_DP = 13;
-    public static final int STACKED_PILL_HEIGHT_DP = 28;
+    public static final int STACKED_PILL_TOP_DP = 6;
+    public static final int STACKED_PILL_HEIGHT_DP = 24;
     /** How far the pill rides up over the avatar. */
-    private static final int STACKED_OVERLAP_DP = 7;
+    private static final int STACKED_OVERLAP_DP = 8;
     private static final int STACKED_CHEVRON_DP = 12;
-    private static final int STACKED_PILL_PADDING_DP = 14;
+    private static final int STACKED_PILL_PADDING_DP = 12;
     private float stackedChevronX;
     private final android.graphics.RectF stackedPillRect = new android.graphics.RectF();
     private final android.graphics.Path stackedPillPath = new android.graphics.Path();
@@ -1537,7 +1537,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         avatarDrawable.setInfo(currentAccount, chat);
         if (avatarImageView != null) {
             avatarImageView.setForUserOrChat(chat, avatarDrawable);
-            avatarImageView.setRoundRadius(ChatObject.isForum(chat) ? dp(ChatObject.hasStories(chat) ? 11 : 16) : dp(21));
+            avatarImageView.setRoundRadius(dp(24));
         }
     }
 
@@ -1645,7 +1645,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                 avatarImageView.setAnimatedEmojiDrawable(null);
                 ForumUtilities.setMonoForumAvatar(currentAccount, chat, avatarDrawable, avatarImageView);
             }
-            avatarImageView.setRoundRadius(dp(21));
+            avatarImageView.setRoundRadius(dp(24));
         } else if (chat != null) {
             avatarDrawable.setScaleSize(1f);
             avatarDrawable.setInfo(currentAccount, chat);
@@ -1653,7 +1653,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             if (avatarImageView != null) {
                 avatarImageView.setAnimatedEmojiDrawable(null);
                 avatarImageView.setForUserOrChat(chat, avatarDrawable);
-                avatarImageView.setRoundRadius(chat.forum ? dp(ChatObject.hasStories(chat) ? 11 : 16) : dp(21));
+                avatarImageView.setRoundRadius(dp(24));
             }
         }
     }

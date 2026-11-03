@@ -390,7 +390,7 @@ public class MediaActivity extends BaseFragment implements SharedMediaLayout.Sha
             }
         };
         avatarImageView.getImageReceiver().setAllowDecodeSingleFrame(true);
-        avatarImageView.setRoundRadius(dp(getDialogId() == getUserConfig().getClientUserId() && topicId == 0 && getMessagesController().savedViewAsChats ? 13 : 21));
+        avatarImageView.setRoundRadius(dp(21));
         avatarImageView.setPivotX(0);
         avatarImageView.setPivotY(0);
         AvatarDrawable avatarDrawable = new AvatarDrawable();

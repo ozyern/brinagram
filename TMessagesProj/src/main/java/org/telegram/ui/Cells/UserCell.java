@@ -737,8 +737,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
             avatarImageView.setImageDrawable(avatarDrawable);
         }
 
-        avatarImageView.setRoundRadius(isCommunity ? dp(46 * 20 / 72f) :
-                (currentChat != null && currentChat.forum ? dp(14) : dp(24)));
+        avatarImageView.setRoundRadius(dp(24));
 
         nameTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
     }

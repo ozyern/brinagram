@@ -304,7 +304,7 @@ public class UserCell2 extends FrameLayout {
             avatarImageView.setImageDrawable(avatarDrawable);
         }
 
-        avatarImageView.setRoundRadius(currentChat != null && currentChat.forum ? AndroidUtilities.dp(14) : AndroidUtilities.dp(24));
+        avatarImageView.setRoundRadius(AndroidUtilities.dp(24));
 
         if (imageView.getVisibility() == VISIBLE && currentDrawable == 0 || imageView.getVisibility() == GONE && currentDrawable != 0) {
             imageView.setVisibility(currentDrawable == 0 ? GONE : VISIBLE);

@@ -3572,7 +3572,7 @@ public class PeerColorActivity extends BaseFragment implements NotificationCente
                     1.0f
             );
 
-            imageReceiver.setRoundRadius(isForum ? dp(18) : dp(54));
+            imageReceiver.setRoundRadius(dp(54));
             imageReceiver.setImageCoords(rectF);
             imageReceiver.draw(canvas);
 

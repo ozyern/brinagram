@@ -7415,6 +7415,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     timeMore += dp(20.5f);
                 }
                 timeMore += getExtraTimeX();
+                if (timeHidden) {
+                    timeMore = 0; // the last line of text has nothing to make room for
+                }
 
                 hasGamePreview = MessageObject.getMedia(messageObject.messageOwner) instanceof TLRPC.TL_messageMediaGame && MessageObject.getMedia(messageObject.messageOwner).game instanceof TLRPC.TL_game;
                 hasInvoicePrice = hasInvoicePreview = MessageObject.getMedia(messageObject.messageOwner) instanceof TLRPC.TL_messageMediaInvoice;
@@ -18422,7 +18425,32 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         allowAssistant = value;
     }
 
+    /** Plain text bubbles carry no time or ticks, unless they have something to report. */
+    private boolean timeHidden;
+
+    private boolean shouldHideTime(MessageObject messageObject) {
+        org.telegram.messenger.BrinaConfig.load();
+        if (org.telegram.messenger.BrinaConfig.showMessageTime || messageObject == null || messageObject.messageOwner == null) {
+            return false;
+        }
+        final TLRPC.Message message = messageObject.messageOwner;
+        return messageObject.type == MessageObject.TYPE_TEXT
+            && (message.media == null || message.media instanceof TLRPC.TL_messageMediaEmpty)
+            && !messageObject.isSending() && !messageObject.isSendError() && !messageObject.scheduled
+            && (message.flags & TLRPC.MESSAGE_FLAG_HAS_VIEWS) == 0
+            && !messageObject.hasReactions() && !messageObject.hasReplies() && !isPinned && !messageObject.isSponsored();
+    }
+
     private void measureTime(MessageObject messageObject) {
+        measureTimeInternal(messageObject);
+        timeHidden = shouldHideTime(messageObject);
+        if (timeHidden) {
+            timeWidth = 0;
+            timeTextWidth = 0;
+        }
+    }
+
+    private void measureTimeInternal(MessageObject messageObject) {
         CharSequence signString;
         MessageObject primaryMessageObject = getPrimaryMessageObject();
         long fromId = messageObject.getFromChatId();
@@ -20912,7 +20940,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     public boolean drawBackgroundInParent() {
         if (canDrawBackgroundInParent && currentMessageObject != null && currentMessageObject.isOutOwner()) {
-            return getThemedColor(Theme.key_chat_outBubbleGradient1) != 0;
+            return false; // outgoing bubbles are always flat: see MessageDrawable
         }
         return false;
     }
@@ -23897,6 +23925,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     public void drawTime(Canvas canvas, float alpha, boolean fromParent) {
+        if (timeHidden) {
+            return;
+        }
         if (!drawFromPinchToZoom && delegate != null && delegate.getPinchToZoomHelper() != null && delegate.getPinchToZoomHelper().isInOverlayModeFor(this) && shouldDrawTimeOnMedia()) {
             return;
         }

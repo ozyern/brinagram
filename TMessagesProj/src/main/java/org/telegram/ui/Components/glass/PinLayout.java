@@ -46,8 +46,11 @@ public final class PinLayout {
     public static int keypadHeight(int screenWidth, int screenHeight) {
         final int keySize = (int) (KEY_SIZE * screenWidth);
         final int rows = rowStep(screenWidth, screenHeight) * 3 + keySize;
-        return Math.max((int) ((1f - FIRST_ROW_Y) * screenHeight + keySize / 2f), rows + AndroidUtilities.dp(16));
+        return Math.max((int) ((1f - FIRST_ROW_Y) * screenHeight + keySize / 2f), rows + AndroidUtilities.dp(16)) + AndroidUtilities.dp(KEYPAD_TOP_INSET_DP);
     }
+
+    /** Room above the first row, so a key that swells under the finger stays whole. */
+    public static final int KEYPAD_TOP_INSET_DP = 6;
 
     public static int estimatedScreenHeight() {
         return AndroidUtilities.displaySize.y + AndroidUtilities.statusBarHeight;

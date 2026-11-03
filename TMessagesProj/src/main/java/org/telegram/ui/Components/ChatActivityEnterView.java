@@ -5844,7 +5844,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         updateFieldHint(false);
         messageEditText.setSingleLine(false);
         messageEditText.setMaxLines(6);
-        messageEditText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        messageEditText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, useBrinaComposer() ? 17 : 18);
         messageEditText.setGravity(Gravity.BOTTOM);
         messageEditText.setPadding(0, dp(9), 0, dp(10));
         messageEditText.setBackgroundDrawable(null);
@@ -5855,7 +5855,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         messageEditText.setHintTextColor(getThemedColor(Theme.key_chat_messagePanelHint));
         messageEditText.setCursorColor(getThemedColor(Theme.key_chat_messagePanelCursor));
         messageEditText.setHandlesColor(getThemedColor(Theme.key_chat_TextSelectionCursor));
-        messageEditTextContainer.addView(messageEditText, 1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, useBrinaComposer() ? BRINA_PLUS_WIDTH_DP + 26 : 52, 0, isChat ? 50 : 2, 1.5f));
+        messageEditTextContainer.addView(messageEditText, 1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, useBrinaComposer() ? BRINA_PLUS_WIDTH_DP + BRINA_FIELD_INSET_DP : 52, 0, isChat ? 50 : 2, 1.5f));
 
         richDraftPreview = new RichMessageLayout.PreviewView(getContext(), currentAccount, resourcesProvider);
         richDraftPreview.setAllowActions(false);
@@ -5864,7 +5864,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         richDraftPreview.setVisibility(View.GONE);
         richDraftPreview.setPadding(dp(8), dp(9), dp(8), dp(10));
         richDraftPreview.setOnClickListener(v -> openRichEditor());
-        messageEditTextContainer.addView(richDraftPreview, 2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, (useBrinaComposer() ? BRINA_PLUS_WIDTH_DP + 26 : 52) - 8, 0, (isChat ? 50 : 2) - 8, 1.5f));
+        messageEditTextContainer.addView(richDraftPreview, 2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, (useBrinaComposer() ? BRINA_PLUS_WIDTH_DP + BRINA_FIELD_INSET_DP : 52) - 8, 0, (isChat ? 50 : 2) - 8, 1.5f));
         messageEditText.setOnKeyListener(new OnKeyListener() {
 
             @Override
@@ -8800,6 +8800,8 @@ public class ChatActivityEnterView extends FrameLayout implements
 
     /** BrinaGram composer: width of the round plus to the left of the field. */
     public static final int BRINA_PLUS_WIDTH_DP = 50;
+    /** From the pill's left edge to the text and hint. */
+    private static final int BRINA_FIELD_INSET_DP = 14;
     private Drawable brinaWaveform;
 
     private boolean useBrinaComposer() {
@@ -14651,11 +14653,13 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (deleteRichDraftButton != null) {
                 ((MarginLayoutParams) deleteRichDraftButton.getLayoutParams()).leftMargin = dp(3);
             }
+            // BrinaGram: the pill starts right after the plus, so the text needs its own inset
+            final int textLeft = useBrinaComposer() ? dp(BRINA_PLUS_WIDTH_DP + BRINA_FIELD_INSET_DP) : dp(50);
             if (messageEditText != null) {
-                ((MarginLayoutParams) messageEditText.getLayoutParams()).leftMargin = dp(50);
+                ((MarginLayoutParams) messageEditText.getLayoutParams()).leftMargin = textLeft;
             }
             if (richDraftPreview != null) {
-                ((MarginLayoutParams) richDraftPreview.getLayoutParams()).leftMargin = dp(50);
+                ((MarginLayoutParams) richDraftPreview.getLayoutParams()).leftMargin = textLeft;
             }
         }
         updateBotCommandsMenuContainerTopPadding();

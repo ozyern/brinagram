@@ -25,7 +25,8 @@ public final class PinKeyDrawable extends Drawable {
 
     private static final long LIGHT_IN_MS = 70;
     private static final long LIGHT_OUT_MS = 170;
-    private static final float LIGHT_ALPHA = 0.85f;
+    /** Strong enough to read as a flood of light, low enough that the digit stays legible. */
+    private static final float LIGHT_ALPHA = 0.6f;
 
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -48,11 +49,16 @@ public final class PinKeyDrawable extends Drawable {
 
     @Override
     protected void onBoundsChange(@NonNull Rect bounds) {
+        // the rim stays lit all the way round, a little stronger at the top
         rim.setShader(new LinearGradient(0, bounds.top, 0, bounds.bottom,
-            dark ? 0x66FFFFFF : 0x40000000,
-            dark ? 0x26FFFFFF : 0x14000000,
+            dark ? 0xB3FFFFFF : 0xF2FFFFFF,
+            dark ? 0x66FFFFFF : 0xA6FFFFFF,
             Shader.TileMode.CLAMP));
         final float r = Math.max(1f, Math.min(bounds.width(), bounds.height()) / 2f);
+        // a thin film: the wallpaper shows through the middle, the glass thickens towards the edge
+        fill.setShader(new RadialGradient(bounds.exactCenterX(), bounds.exactCenterY(), r,
+            new int[] {dark ? 0x1FFFFFFF : 0x4DFFFFFF, dark ? 0x29FFFFFF : 0x66FFFFFF, dark ? 0x59FFFFFF : 0xA6FFFFFF},
+            new float[] {0f, 0.7f, 1f}, Shader.TileMode.CLAMP));
         lightPaint.setShader(new RadialGradient(bounds.exactCenterX(), bounds.exactCenterY(), r,
             new int[] {0xFFFFFFFF, 0xFFFFFFFF, 0xCCDDEEFF}, new float[] {0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
     }
@@ -97,7 +103,6 @@ public final class PinKeyDrawable extends Drawable {
         final float cx = b.exactCenterX(), cy = b.exactCenterY();
         final float r = Math.min(b.width(), b.height()) / 2f;
         if (!lightOnly) {
-            fill.setColor(dark ? 0x24FFFFFF : 0x0F000000);
             canvas.drawCircle(cx, cy, r, fill);
             final float stroke = AndroidUtilities.dpf2(1f);
             rim.setStrokeWidth(stroke);

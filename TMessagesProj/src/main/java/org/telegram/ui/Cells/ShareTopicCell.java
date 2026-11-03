@@ -160,7 +160,7 @@ public class ShareTopicCell extends FrameLayout {
             combinedDrawable.setFullsize(true);
             imageView.setImageDrawable(combinedDrawable);
         }
-        imageView.setRoundRadius(chat != null && chat.forum && !checked ? AndroidUtilities.dp(16) : AndroidUtilities.dp(28));
+        imageView.setRoundRadius(AndroidUtilities.dp(28));
 
         currentDialog = dialog.id;
         currentTopic = topic.id;

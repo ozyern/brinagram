@@ -4640,6 +4640,10 @@ public class ChatActivity extends BaseFragment implements
             actionBar.setChatAvatarContainer(avatarContainer);
             actionBar.setForcedMenuMinWidth(dp(46));
             avatarContainer.setActionBar(actionBar);
+        } else if (avatarContainer.getParent() == actionBar) {
+            // every chat: without this the bar paints a wide slab and the header never stacks
+            actionBar.setChatAvatarContainer(avatarContainer);
+            avatarContainer.setActionBar(actionBar);
         }
 
         // the header's name pill hangs a little below the action bar

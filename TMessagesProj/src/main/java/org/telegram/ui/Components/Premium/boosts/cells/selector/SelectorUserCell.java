@@ -236,7 +236,7 @@ public class SelectorUserCell extends BaseCell {
         this.chat = chat;
         this.user = null;
         avatarDrawable.setInfo(chat);
-        imageView.setRoundRadius(dp(ChatObject.isForum(chat) ? 12 : 20));
+        imageView.setRoundRadius(dp(20));
         imageView.setForUserOrChat(chat, avatarDrawable);
 
         titleTextView.setText(chat.title);
